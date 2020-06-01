@@ -10,6 +10,7 @@
 #define SCREEN_WIDTH 121
 #define SCREEN_HEIGHT 25
 #define PLAYER 'S'
+#define ENEMY 'E'
 
 typedef char screen_t[SCREEN_HEIGHT][SCREEN_WIDTH];
 
@@ -18,39 +19,41 @@ void clear_screen();
 void update();
 
 screen_t screen;
-short int running=1;
-short int x=0,y=0;
-unsigned int frame_count=0;
-static int score=0;
+short int running = 1;
+short int x = 0, y = 0;
+unsigned int frame_count = 0;
+static int score = 0;
 
 int main(void) {
-    while(running){
+    while (running) {
         clear_screen();
-        // Check for input
-        if(_kbhit()){
-            char c=getch();
-            if(c=='a')x--;
-            if(c=='d')x++;
-            if(c=='w')y--;
-            if(c=='s')y++;
-        }
         update();
         draw();
         _sleep(5);
     }
 }
-void update(){
 
+void update() {
+    // Check input
+    if (_kbhit()) {
+        char c = getch();
+        if (c == 'a')x--;
+        if (c == 'd')x++;
+        if (c == 'w')y--;
+        if (c == 's')y++;
+    }
 }
-void draw(){
-    printf("Score: %d\n",score);
-    screen[y][x]=PLAYER;
-    for(int i=0;i<SCREEN_HEIGHT;i++) {
+
+void draw() {
+    printf("Score: %07d\n", score);
+    screen[y][x] = PLAYER;
+    for (int i = 0; i < SCREEN_HEIGHT; i++) {
         puts(screen[i]);
     }
     frame_count++;
 }
-void clear_screen(){
+
+void clear_screen() {
     system("cls");
     for(int i=0;i<SCREEN_HEIGHT;i++) {
         for(int j=0;j<SCREEN_WIDTH;j++){
