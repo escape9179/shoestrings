@@ -11,6 +11,7 @@
 #define SCREEN_HEIGHT 25
 #define PLAYER 'S'
 #define ENEMY 'E'
+#define SLEEP_DUR 5
 
 typedef char screen_t[SCREEN_HEIGHT][SCREEN_WIDTH];
 
@@ -21,6 +22,7 @@ void update();
 screen_t screen;
 short int running = 1;
 short int x = 0, y = 0;
+short int enemy_x = 0, enemy_y = 0;
 unsigned int frame_count = 0;
 static int score = 0;
 
@@ -29,11 +31,20 @@ int main(void) {
         clear_screen();
         update();
         draw();
-        _sleep(5);
+        _sleep(SLEEP_DUR);
     }
 }
 
 void update() {
+    // Calculate new enemy position
+    // every second
+    if (frame_count % 10 == 0) {
+        enemy_y += 1;
+        if (enemy_y >= SCREEN_HEIGHT) {
+            enemy_y = 0;
+            enemy_x = (rand() / (float) RAND_MAX) * (SCREEN_WIDTH - 1);
+        }
+    }
     // Check input
     if (_kbhit()) {
         char c = getch();
@@ -45,8 +56,9 @@ void update() {
 }
 
 void draw() {
-    printf("Score: %07d\n", score);
+    printf("Score: %07d\n", frame_count);
     screen[y][x] = PLAYER;
+    screen[enemy_y][enemy_x] = ENEMY;
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         puts(screen[i]);
     }
