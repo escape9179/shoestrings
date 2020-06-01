@@ -61,8 +61,9 @@ void update() {
             if (bp_array[i] == NULL);
             else if ((bp_array[i]->y) <= 0) {
                 free(bp_array[i]);
-            } else
+            } else {
                 bp_array[i]->y--;
+            }
         }
     }
     // Check input
@@ -71,28 +72,22 @@ void update() {
         if (c == 'a')x--;
         if (c == 'd')x++;
         if (c == 'w') {
-
-            struct bullet *bp = (struct bulllet *) bp_array;
-            bp = malloc(sizeof(struct bullet));
-            bp->x = x, bp->y = y;
-            bp++;
-
-
-//            bp_array[bi] = malloc(sizeof(struct bullet));
-//            bp_array[bi]->x = x, bp_array[bi]->y = y;
-//            if (++bi > MAX_BULLETS)bi = 0;
+            bp_array[bi] = malloc(sizeof(struct bullet));
+            bp_array[bi]->x = x, bp_array[bi]->y = y;
+            if (++bi > MAX_BULLETS)bi = 0;
         }
     }
 }
 
 void draw() {
     printf("Score: %07d\n", frame_count);
-    printf("Debug: %s\n", dbgmsg);
     screen[y][x] = PLAYER;
     screen[enemy_y][enemy_x] = ENEMY;
-//    for(int i=0;i<MAX_BULLETS;i++){
-//        screen[bp_array[i]->y][bp_array[i]->x]=BULLET;
-//    }
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        if (bp_array[i] != NULL) {
+            screen[bp_array[i]->y][bp_array[i]->x] = BULLET;
+        }
+    }
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         puts(screen[i]);
     }
