@@ -21,7 +21,7 @@ void update();
 
 screen_t screen;
 short int running = 1;
-short int x = 0, y = 0;
+short int x = SCREEN_WIDTH / 2, y = SCREEN_HEIGHT - 1;
 short int enemy_x = 0, enemy_y = 0;
 unsigned int frame_count = 0;
 static int score = 0;
@@ -50,8 +50,6 @@ void update() {
         char c = getch();
         if (c == 'a')x--;
         if (c == 'd')x++;
-        if (c == 'w')y--;
-        if (c == 's')y++;
     }
 }
 
