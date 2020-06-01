@@ -16,7 +16,9 @@
 typedef char screen_t[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 void draw();
+
 void clear_screen();
+
 void update();
 
 screen_t screen;
@@ -65,13 +67,13 @@ void draw() {
 
 void clear_screen() {
     system("cls");
-    for(int i=0;i<SCREEN_HEIGHT;i++) {
-        for(int j=0;j<SCREEN_WIDTH;j++){
-            if(j==SCREEN_WIDTH-1){
-                screen[i][j]='\0';
+    for (int i = 0; i < SCREEN_HEIGHT; i++) {
+        for (int j = 0; j < SCREEN_WIDTH; j++) {
+            if (j == SCREEN_WIDTH - 1) {
+                screen[i][j] = '\0';
                 break;
             }
-            screen[i][j]=' ';
+            screen[i][j] = ' ';
         }
     }
 }
