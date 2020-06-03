@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <conio.h>
+
 #define SCREEN_WIDTH 121
 #define SCREEN_HEIGHT 25
 #define MAX_BULLETS 10
@@ -28,16 +29,28 @@ short int running = 1;
 static unsigned int fc = 0;
 static int score = 0;
 
+/**
+ * Draw entities and other data on the screen.
+ */
 void draw();
 
+/**
+ * Clear the console of all characters.
+ */
 void clr_scrn();
 
+/**
+ * Update positions of entities and other data.
+ */
 void update();
 
+/**
+ * Get a random coordinate along the x-axis.
+ */
 ushort rndscrnx();
 
 int main(void) {
-    pp.x=SCREEN_WIDTH/2,pp.y=SCREEN_HEIGHT-1;
+    pp.x = SCREEN_WIDTH / 2, pp.y = SCREEN_HEIGHT - 1;
     while (running) {
         clr_scrn();
         update();
@@ -48,40 +61,59 @@ int main(void) {
 
 void update() {
     // Calculate new enemy position
-    // every second
+    // every tick.
     if (fc % 10 == 0) {
         ep.y += 1;
         if (ep.y >= SCREEN_HEIGHT) {
-            ep.y= 0;
+            ep.y = 0;
             ep.x = rndscrnx();
         }
     }
-    // move bullets
+
+    // Move the bullets, performing any necessary
+    // bound checks.
     if (fc % 1 == 0) {
         for (int i = 0; i < MAX_BULLETS; i++) {
+
+            // If the bullet pointer is null, do nothing.
             if (!bparr[i]);
+
+                // If the bullet has reached the top of
+                // the screen, free the memory associated
+                // with the bullet and nullify it.
             else if ((bparr[i]->y) <= 0) {
                 scrn[bparr[i]->y][bparr[i]->x] = CLEAR_CHAR;
                 free(bparr[i]);
-                bparr[i] = NULL;
+                bparr[i] = 0;
             } else {
+
+                // Move the bullet up one character
+                // on the y-axis.
                 bparr[i]->y--;
                 ushort bpx = bparr[i]->x;
                 ushort bpy = bparr[i]->y;
-                if (bpx == ep.x && bpy ==ep.y) {
-                    ep.x = rndscrnx(),ep.y = 0;
+
+                // Check if the bullet position
+                // is equal to the position of the enemy
+                // and delete the enemy if so
+                if (bpx == ep.x && bpy == ep.y) {
+                    ep.x = rndscrnx(), ep.y = 0;
                     free(bparr[i]), bparr[i] = NULL;
                 }
             }
         }
     }
-    // Check input
+
+    // Get non-blocking keyboard input.
     if (_kbhit()) {
         char c = getch();
         if (c == 'a')pp.x--;
         if (c == 'd')pp.x++;
         if (c == 'q')exit(EXIT_SUCCESS);
         if (c == 'w') {
+
+            // Create another bullet one character
+            // above the player.
             static int i = 0;
             bparr[i] = malloc(sizeof(struct position));
             bparr[i]->x = pp.x, bparr[i]->y = pp.y - 1;
@@ -95,9 +127,8 @@ void draw() {
     scrn[pp.y][pp.x] = PLAYER;
     scrn[ep.y][ep.x] = ENEMY;
     for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bparr[i]) {
+        if (bparr[i])
             scrn[bparr[i]->y][bparr[i]->x] = BULLET;
-        }
     }
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         puts(scrn[i]);
