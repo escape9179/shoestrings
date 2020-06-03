@@ -16,6 +16,7 @@
 #define ENEMY 'E'
 #define BULLET 'B'
 #define CLEAR_CHAR ' '
+#define SCORE_INC 1
 
 typedef char screen[SCREEN_HEIGHT][SCREEN_WIDTH];
 typedef unsigned short ushort;
@@ -95,10 +96,12 @@ void update() {
 
                 // Check if the bullet position
                 // is equal to the position of the enemy
-                // and delete the enemy if so
+                // and delete the enemy if so. Then increment
+                // the score.
                 if (bpx == ep.x && bpy == ep.y) {
                     ep.x = rndscrnx(), ep.y = 0;
                     free(bparr[i]), bparr[i] = NULL;
+                    score += SCORE_INC;
                 }
             }
         }
@@ -123,7 +126,7 @@ void update() {
 }
 
 void draw() {
-    printf("Score: %07d\n", fc);
+    printf("Score: %07d\n", score);
     scrn[pp.y][pp.x] = PLAYER;
     scrn[ep.y][ep.x] = ENEMY;
     for (int i = 0; i < MAX_BULLETS; i++) {
