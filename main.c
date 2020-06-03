@@ -5,14 +5,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <conio.h>
 
 #define SCREEN_WIDTH 121
 #define SCREEN_HEIGHT 25
 #define MAX_BULLETS 10
 #define SLEEP_DUR 5
-#define PLAYER 'S'
+#define PLAYER 193
 #define ENEMY 254
 #define BULLET 179
 #define CLEAR_CHAR ' '
@@ -147,7 +146,7 @@ void clr_scrn() {
                 scrn[i][j] = '\0';
                 break;
             }
-            scrn[i][j] = ' ';
+            scrn[i][j] = CLEAR_CHAR;
         }
     }
 }
