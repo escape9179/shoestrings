@@ -14,6 +14,7 @@
 #define ENEMY 'E'
 #define BULLET 'B'
 #define SLEEP_DUR 5
+#define CLEAR_CHAR ' '
 
 typedef char screen_t[SCREEN_HEIGHT][SCREEN_WIDTH];
 
@@ -30,7 +31,6 @@ short int enemy_x = 0, enemy_y = 0;
 static unsigned int frame_count = 0;
 static int score = 0;
 static struct bullet *bp_array[MAX_BULLETS];
-static unsigned char bi;
 
 struct bullet {
     unsigned char x, y;
@@ -60,7 +60,9 @@ void update() {
         for (int i = 0; i < MAX_BULLETS; i++) {
             if (bp_array[i] == NULL);
             else if ((bp_array[i]->y) <= 0) {
+                screen[bp_array[i]->y][bp_array[i]->x] = CLEAR_CHAR;
                 free(bp_array[i]);
+                bp_array[i] = NULL;
             } else {
                 bp_array[i]->y--;
             }
@@ -71,10 +73,12 @@ void update() {
         char c = getch();
         if (c == 'a')x--;
         if (c == 'd')x++;
+        if (c == 'q')exit(EXIT_SUCCESS);
         if (c == 'w') {
+            static int bi = 0;
             bp_array[bi] = malloc(sizeof(struct bullet));
-            bp_array[bi]->x = x, bp_array[bi]->y = y;
-            if (++bi > MAX_BULLETS)bi = 0;
+            bp_array[bi]->x = x, bp_array[bi]->y = y - 1;
+            if (++bi >= MAX_BULLETS - 1)bi = 0;
         }
     }
 }
@@ -84,7 +88,7 @@ void draw() {
     screen[y][x] = PLAYER;
     screen[enemy_y][enemy_x] = ENEMY;
     for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bp_array[i] != NULL) {
+        if (bp_array[i]) {
             screen[bp_array[i]->y][bp_array[i]->x] = BULLET;
         }
     }
