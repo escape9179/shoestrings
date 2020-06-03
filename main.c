@@ -13,8 +13,8 @@
 #define MAX_BULLETS 10
 #define SLEEP_DUR 5
 #define PLAYER 'S'
-#define ENEMY 'E'
-#define BULLET 'B'
+#define ENEMY 254
+#define BULLET 179
 #define CLEAR_CHAR ' '
 #define SCORE_INC 1
 
