@@ -1,23 +1,32 @@
+/* shoestrings
+ * shoestring at bottom of screen
+ * shooting falling sneakers.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <conio.h>
-
-/* shoestrings
- * shoestring at bottom of screen
- * shooting falling sneakers. */
-
 #define SCREEN_WIDTH 121
 #define SCREEN_HEIGHT 25
 #define MAX_BULLETS 10
+#define SLEEP_DUR 5
 #define PLAYER 'S'
 #define ENEMY 'E'
 #define BULLET 'B'
-#define SLEEP_DUR 5
 #define CLEAR_CHAR ' '
 
-typedef char screen_t[SCREEN_HEIGHT][SCREEN_WIDTH];
+typedef char screen[SCREEN_HEIGHT][SCREEN_WIDTH];
 typedef unsigned short ushort;
+
+struct position {
+    ushort x, y;
+} pp, ep, *bparr[MAX_BULLETS];
+
+screen scrn;
+short int running = 1;
+static unsigned int fc = 0;
+static int score = 0;
 
 void draw();
 
@@ -27,21 +36,8 @@ void update();
 
 ushort rndscrnx();
 
-ushort rndscrny();
-
-screen_t screen;
-short int running = 1;
-short int px = SCREEN_WIDTH / 2, py = SCREEN_HEIGHT - 1;
-short int ex = 0, ey = 0;
-static unsigned int fc = 0;
-static int scr = 0;
-static struct bullet *bparr[MAX_BULLETS];
-
-struct bullet {
-    unsigned char x, y;
-};
-
 int main(void) {
+    pp.x=SCREEN_WIDTH/2,pp.y=SCREEN_HEIGHT-1;
     while (running) {
         clr_scrn();
         update();
@@ -54,10 +50,10 @@ void update() {
     // Calculate new enemy position
     // every second
     if (fc % 10 == 0) {
-        ey += 1;
-        if (ey >= SCREEN_HEIGHT) {
-            ey = 0;
-            ex = rndscrnx();
+        ep.y += 1;
+        if (ep.y >= SCREEN_HEIGHT) {
+            ep.y= 0;
+            ep.x = rndscrnx();
         }
     }
     // move bullets
@@ -65,15 +61,15 @@ void update() {
         for (int i = 0; i < MAX_BULLETS; i++) {
             if (!bparr[i]);
             else if ((bparr[i]->y) <= 0) {
-                screen[bparr[i]->y][bparr[i]->x] = CLEAR_CHAR;
+                scrn[bparr[i]->y][bparr[i]->x] = CLEAR_CHAR;
                 free(bparr[i]);
                 bparr[i] = NULL;
             } else {
                 bparr[i]->y--;
                 ushort bpx = bparr[i]->x;
                 ushort bpy = bparr[i]->y;
-                if (bpx == ex && bpy == ey) {
-                    ex = rndscrnx(), ey = 0;
+                if (bpx == ep.x && bpy ==ep.y) {
+                    ep.x = rndscrnx(),ep.y = 0;
                     free(bparr[i]), bparr[i] = NULL;
                 }
             }
@@ -82,13 +78,13 @@ void update() {
     // Check input
     if (_kbhit()) {
         char c = getch();
-        if (c == 'a')px--;
-        if (c == 'd')px++;
+        if (c == 'a')pp.x--;
+        if (c == 'd')pp.x++;
         if (c == 'q')exit(EXIT_SUCCESS);
         if (c == 'w') {
             static int i = 0;
-            bparr[i] = malloc(sizeof(struct bullet));
-            bparr[i]->x = px, bparr[i]->y = py - 1;
+            bparr[i] = malloc(sizeof(struct position));
+            bparr[i]->x = pp.x, bparr[i]->y = pp.y - 1;
             if (++i >= MAX_BULLETS - 1)i = 0;
         }
     }
@@ -96,15 +92,15 @@ void update() {
 
 void draw() {
     printf("Score: %07d\n", fc);
-    screen[py][px] = PLAYER;
-    screen[ey][ex] = ENEMY;
+    scrn[pp.y][pp.x] = PLAYER;
+    scrn[ep.y][ep.x] = ENEMY;
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bparr[i]) {
-            screen[bparr[i]->y][bparr[i]->x] = BULLET;
+            scrn[bparr[i]->y][bparr[i]->x] = BULLET;
         }
     }
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
-        puts(screen[i]);
+        puts(scrn[i]);
     }
     fc++;
 }
@@ -114,18 +110,14 @@ void clr_scrn() {
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         for (int j = 0; j < SCREEN_WIDTH; j++) {
             if (j == SCREEN_WIDTH - 1) {
-                screen[i][j] = '\0';
+                scrn[i][j] = '\0';
                 break;
             }
-            screen[i][j] = ' ';
+            scrn[i][j] = ' ';
         }
     }
 }
 
 ushort rndscrnx() {
     return (rand() / (float) RAND_MAX) * SCREEN_WIDTH - 1;
-}
-
-ushort rndscrny() {
-    return (rand() / (float) RAND_MAX) * SCREEN_HEIGHT - 1;
 }
