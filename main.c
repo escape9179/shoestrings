@@ -17,20 +17,25 @@
 #define CLEAR_CHAR ' '
 
 typedef char screen_t[SCREEN_HEIGHT][SCREEN_WIDTH];
+typedef unsigned short ushort;
 
 void draw();
 
-void clear_screen();
+void clr_scrn();
 
 void update();
 
+ushort rndscrnx();
+
+ushort rndscrny();
+
 screen_t screen;
 short int running = 1;
-short int x = SCREEN_WIDTH / 2, y = SCREEN_HEIGHT - 1;
-short int enemy_x = 0, enemy_y = 0;
-static unsigned int frame_count = 0;
-static int score = 0;
-static struct bullet *bp_array[MAX_BULLETS];
+short int px = SCREEN_WIDTH / 2, py = SCREEN_HEIGHT - 1;
+short int ex = 0, ey = 0;
+static unsigned int fc = 0;
+static int scr = 0;
+static struct bullet *bparr[MAX_BULLETS];
 
 struct bullet {
     unsigned char x, y;
@@ -38,7 +43,7 @@ struct bullet {
 
 int main(void) {
     while (running) {
-        clear_screen();
+        clr_scrn();
         update();
         draw();
         _sleep(SLEEP_DUR);
@@ -48,57 +53,63 @@ int main(void) {
 void update() {
     // Calculate new enemy position
     // every second
-    if (frame_count % 10 == 0) {
-        enemy_y += 1;
-        if (enemy_y >= SCREEN_HEIGHT) {
-            enemy_y = 0;
-            enemy_x = (rand() / (float) RAND_MAX) * (SCREEN_WIDTH - 1);
+    if (fc % 10 == 0) {
+        ey += 1;
+        if (ey >= SCREEN_HEIGHT) {
+            ey = 0;
+            ex = rndscrnx();
         }
     }
     // move bullets
-    if (frame_count % 5 == 0) {
+    if (fc % 1 == 0) {
         for (int i = 0; i < MAX_BULLETS; i++) {
-            if (!bp_array[i]);
-            else if ((bp_array[i]->y) <= 0) {
-                screen[bp_array[i]->y][bp_array[i]->x] = CLEAR_CHAR;
-                free(bp_array[i]);
-                bp_array[i] = NULL;
+            if (!bparr[i]);
+            else if ((bparr[i]->y) <= 0) {
+                screen[bparr[i]->y][bparr[i]->x] = CLEAR_CHAR;
+                free(bparr[i]);
+                bparr[i] = NULL;
             } else {
-                bp_array[i]->y--;
+                bparr[i]->y--;
+                ushort bpx = bparr[i]->x;
+                ushort bpy = bparr[i]->y;
+                if (bpx == ex && bpy == ey) {
+                    ex = rndscrnx(), ey = 0;
+                    free(bparr[i]), bparr[i] = NULL;
+                }
             }
         }
     }
     // Check input
     if (_kbhit()) {
         char c = getch();
-        if (c == 'a')x--;
-        if (c == 'd')x++;
+        if (c == 'a')px--;
+        if (c == 'd')px++;
         if (c == 'q')exit(EXIT_SUCCESS);
         if (c == 'w') {
-            static int bi = 0;
-            bp_array[bi] = malloc(sizeof(struct bullet));
-            bp_array[bi]->x = x, bp_array[bi]->y = y - 1;
-            if (++bi >= MAX_BULLETS - 1)bi = 0;
+            static int i = 0;
+            bparr[i] = malloc(sizeof(struct bullet));
+            bparr[i]->x = px, bparr[i]->y = py - 1;
+            if (++i >= MAX_BULLETS - 1)i = 0;
         }
     }
 }
 
 void draw() {
-    printf("Score: %07d\n", frame_count);
-    screen[y][x] = PLAYER;
-    screen[enemy_y][enemy_x] = ENEMY;
+    printf("Score: %07d\n", fc);
+    screen[py][px] = PLAYER;
+    screen[ey][ex] = ENEMY;
     for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bp_array[i]) {
-            screen[bp_array[i]->y][bp_array[i]->x] = BULLET;
+        if (bparr[i]) {
+            screen[bparr[i]->y][bparr[i]->x] = BULLET;
         }
     }
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         puts(screen[i]);
     }
-    frame_count++;
+    fc++;
 }
 
-void clear_screen() {
+void clr_scrn() {
     system("cls");
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         for (int j = 0; j < SCREEN_WIDTH; j++) {
@@ -109,4 +120,12 @@ void clear_screen() {
             screen[i][j] = ' ';
         }
     }
+}
+
+ushort rndscrnx() {
+    return (rand() / (float) RAND_MAX) * SCREEN_WIDTH - 1;
+}
+
+ushort rndscrny() {
+    return (rand() / (float) RAND_MAX) * SCREEN_HEIGHT - 1;
 }
