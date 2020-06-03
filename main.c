@@ -58,7 +58,7 @@ void update() {
     // move bullets
     if (frame_count % 5 == 0) {
         for (int i = 0; i < MAX_BULLETS; i++) {
-            if (bp_array[i] == NULL);
+            if (!bp_array[i]);
             else if ((bp_array[i]->y) <= 0) {
                 screen[bp_array[i]->y][bp_array[i]->x] = CLEAR_CHAR;
                 free(bp_array[i]);
