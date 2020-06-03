@@ -20,13 +20,15 @@
 
 typedef char screen[SCREEN_HEIGHT][SCREEN_WIDTH];
 typedef unsigned short ushort;
+typedef unsigned char uchar;
 
 struct position {
     ushort x, y;
 } pp, ep, *bparr[MAX_BULLETS];
 
 screen scrn;
-short int running = 1;
+uchar running;
+uchar playing;
 static unsigned int fc = 0;
 static int score = 0;
 
@@ -50,17 +52,7 @@ void update();
  */
 ushort rndscrnx();
 
-int main(void) {
-    pp.x = SCREEN_WIDTH / 2, pp.y = SCREEN_HEIGHT - 1;
-    while (running) {
-        clr_scrn();
-        update();
-        draw();
-        _sleep(SLEEP_DUR);
-    }
-}
-
-void update() {
+void updateents() {
     // Calculate new enemy position
     // every tick.
     if (fc % 10 == 0) {
@@ -105,6 +97,30 @@ void update() {
                 }
             }
         }
+    }
+
+}
+
+int main(void) {
+    pp.x = SCREEN_WIDTH / 2, pp.y = SCREEN_HEIGHT - 1;
+    running = 1;
+    while (running) {
+        clr_scrn();
+        update();
+        draw();
+        _sleep(SLEEP_DUR);
+    }
+}
+
+void update() {
+    // If the game is being played update all entities.
+    if (playing)updateents();
+
+        // Show main menu.
+    else {
+        static char *optns[][20] = {"Play", "Quit", "Scores (WIP)"};
+        static char *ymid = scrn[SCREEN_HEIGHT / 2];
+        ymid = "Test";
     }
 
     // Get non-blocking keyboard input.
