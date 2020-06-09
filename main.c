@@ -1,201 +1,186 @@
-/* shoestrings
- * shoestring at bottom of screen
- * shooting falling sneakers.
- */
-
 #include <stdio.h>
-#include <stdlib.h>
+#include <windows.h>
 #include <conio.h>
 
-#define SCREEN_WIDTH 230
-#define SCREEN_HEIGHT 50
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 800
+#define BUFFER_WIDTH 80
+#define BUFFER_HEIGHT 40
+#define X_MIN 1
+#define Y_MIN 2
+#define X_MAX BUFFER_WIDTH - 1
+#define Y_MAX BUFFER_HEIGHT - 1
+#define SLEEP_DELAY 20
+#define SLEEPS_PER_TICK 10
+#define SHOE_SPAWN_RATE 10
+#define SHOE_MOVE_RATE 2
+#define MAX_SHOES 10
 #define MAX_BULLETS 10
-#define SLEEP_DUR 5
-#define PLAYER 193
-#define ENEMY 254
-#define BC 254
-#define BULLET 179
-#define CC ' '
-#define SCORE_INC 1
-#define PLAYER_HEIGHT 12
-#define PLAYER_WIDTH 3
-#define SHOE_HEIGHT 8
-#define SHOE_WIDTH 12
-
-typedef unsigned char screen[SCREEN_HEIGHT][SCREEN_WIDTH];
-typedef unsigned short ushort;
+#define PLAYER_CHAR 'p'
+#define SHOE_CHAR 's'
+#define BULLET_CHAR 'b'
+#define CLEAR_CHAR ' '
+#define BORDER_CHAR '#'
 
 struct position {
-    ushort x, y;
-} pp, sp, *bparr[MAX_BULLETS];
+    unsigned char x, y;
+} player = {X_MIN, Y_MAX - 2}, *shoe_array[MAX_SHOES], *bullet_array[MAX_BULLETS];
 
-screen scrn;
-short int running = 1;
-static unsigned int fc = 0;
-static int score = 0;
+void write_char(unsigned int, unsigned int, char);
 
-static char pcharr[PLAYER_HEIGHT][PLAYER_WIDTH] = {
-        {CC, BC, CC},
-        {CC, BC, CC},
-        {CC, BC, CC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-        {BC, BC, BC},
-};
+void move_entity(unsigned int, unsigned int, unsigned int, unsigned int, char);
 
-static char scharr[][12] = {
-        {CC, CC, BC, BC, BC, BC, CC, CC, CC, CC, CC, CC},
-        {CC, CC, BC, BC, BC, BC, CC, CC, CC, CC, CC, CC},
-        {CC, CC, BC, BC, BC, BC, CC, CC, CC, CC, CC, CC},
-        {CC, BC, BC, BC, BC, BC, BC, CC, CC, CC, CC, CC},
-        {CC, BC, BC, BC, BC, BC, BC, BC, BC, CC, CC, CC},
-        {BC, BC, BC, BC, BC, BC, BC, BC, BC, BC, BC, CC},
-        {BC, BC, BC, BC, BC, BC, BC, BC, BC, BC, BC, BC},
-        {BC, BC, BC, BC, BC, BC, BC, BC, BC, BC, BC, BC}
-};
+void write_text(unsigned int, unsigned int, char const *);
 
-/**
- * Draw entities and other data on the screen.
- */
-void draw();
-
-/**
- * Clear the console of all characters.
- */
-void clrscrn();
-
-/**
- * Update positions of entities and other data.
- */
-void update();
-
-/**
- * Get a random coordinate along the x-axis.
- */
-ushort rndscrnx();
-
-void drawobj(int, int, int, int, char **);
+static unsigned char running;
+static unsigned short sleep_count;
+static unsigned short tick_count;
 
 int main(void) {
-    pp.x = 2, pp.y = SCREEN_HEIGHT - PLAYER_HEIGHT;
+
+    // Do window initialization stuff
+    MoveWindow(GetConsoleWindow(), 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, TRUE);
+
+    // Draw play area
+    COORD position = {0, 0};
+    for (int i = 0; i < BUFFER_WIDTH; i++) {
+        position.X = i;
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
+        write_char(position.X, position.Y, BORDER_CHAR);
+    }
+    for (int i = 0; i < BUFFER_HEIGHT; i++) {
+        position.Y = i;
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
+        write_char(position.X, position.Y, BORDER_CHAR);
+    }
+    for (int i = BUFFER_WIDTH - 1; i > -1; i--) {
+        position.X = i;
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
+        write_char(position.X, position.Y, BORDER_CHAR);
+    }
+    for (int i = BUFFER_HEIGHT - 1; i > 0; i--) {
+        position.Y = i;
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
+        write_char(position.X, position.Y, BORDER_CHAR);
+    }
+
+    running = 1;
+
+    // Set initial position of player
+    move_entity(0, 0, player.x, player.y, PLAYER_CHAR);
+
     while (running) {
-        clrscrn();
-        update();
-        draw();
-        _sleep(SLEEP_DUR);
-    }
-}
 
-void update() {
+        // Do a tick
+        if (sleep_count % SLEEPS_PER_TICK == 0) {
+            int i;
 
-    // Calculate new enemy position
-    // every tick.
-    if (fc % 10 == 0) {
-        sp.y += 1;
-        if (sp.y + SHOE_HEIGHT >= SCREEN_HEIGHT) {
-            sp.y = 0;
-            sp.x = rndscrnx();
-        }
-    }
-
-    // Move the bullets, performing any necessary
-    // bound checks.
-    if (fc % 1 == 0) {
-        for (int i = 0; i < MAX_BULLETS; i++) {
-
-            // If the bullet pointer is null, do nothing.
-            if (!bparr[i]);
-
-                // If the bullet has reached the top of
-                // the screen, free the memory associated
-                // with the bullet and nullify it.
-            else if ((bparr[i]->y) <= 0) {
-                scrn[bparr[i]->y][bparr[i]->x] = CC;
-                free(bparr[i]);
-                bparr[i] = 0;
-            } else {
-
-                // Move the bullet up one character
-                // on the y-axis.
-                bparr[i]->y--;
-                ushort bpx = bparr[i]->x;
-                ushort bpy = bparr[i]->y;
-
-                // Check if the bullet position
-                // is equal to the position of the enemy
-                // and delete the enemy if so. Then increment
-                // the score.
-                if (bpx >= sp.x && bpx <= (sp.x + SHOE_HEIGHT) && bpy >= sp.y && bpy <= sp.y + SHOE_WIDTH) {
-                    sp.x = rndscrnx(), sp.y = 0;
-                    free(bparr[i]), bparr[i] = NULL;
-                    score += SCORE_INC;
+            // Spawn new shoe every SHOE_SPAWN_RATE ticks
+            if (tick_count % SHOE_SPAWN_RATE == 0) {
+                for (i = 0; i < MAX_SHOES; i++) {
+                    if (shoe_array[i]) continue;
+                    shoe_array[i] = malloc(sizeof(struct position));
+                    shoe_array[i]->x = (((float) rand() / RAND_MAX) * (X_MAX - 1)) + 1;
+                    shoe_array[i]->y = Y_MIN;
+                    break;
                 }
             }
-        }
-    }
 
-    // Get non-blocking keyboard input.
-    if (_kbhit()) {
-        char c = getch();
-        if (c == 'a')pp.x--;
-        if (c == 'd')pp.x++;
-        if (c == 'q')exit(EXIT_SUCCESS);
-        if (c == 'w') {
-            // Create another bullet one character
-            // above the player.
-            static int i = 0;
-            bparr[i] = malloc(sizeof(struct position));
-            bparr[i]->x = pp.x + 1, bparr[i]->y = pp.y - 1;
-            if (++i >= MAX_BULLETS - 1)i = 0;
-        }
-    }
-}
+            // Move falling shoes
+            if (tick_count % SHOE_MOVE_RATE == 0) {
+                for (i = 0; i < MAX_SHOES; i++) {
+                    if (!shoe_array[i]) continue;
+                    move_entity(shoe_array[i]->x, shoe_array[i]->y, shoe_array[i]->x, shoe_array[i]->y + 1, SHOE_CHAR);
 
-void drawobj(int epx, int epy, int epw, int eph, char **charr) {
-    for (int i = epy; i < eph + epy; i++) {
-        for (int j = epx; j < epw + epx; j++) {
-            scrn[i][j] = *((char *) charr + ((i - epy) * epw) + (j - epx));
-        }
-    }
-}
-
-void draw() {
-    printf("Score: %07d\n", score);
-
-    drawobj(pp.x, pp.y, PLAYER_WIDTH, PLAYER_HEIGHT, (char **) pcharr);
-    drawobj(sp.x, sp.y, SHOE_WIDTH, SHOE_HEIGHT, (char **) scharr);
-
-    // Draw bullets.
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bparr[i])
-            scrn[bparr[i]->y][bparr[i]->x] = BULLET;
-    }
-
-    // Draw character buffer to screen.
-    for (int i = 0; i < SCREEN_HEIGHT; i++)
-        puts(scrn[i]);
-    fc++;
-}
-
-void clrscrn() {
-    system("cls");
-    for (int i = 0; i < SCREEN_HEIGHT; i++) {
-        for (int j = 0; j < SCREEN_WIDTH; j++) {
-            if (j == SCREEN_WIDTH - 1) {
-                scrn[i][j] = '\0';
-                break;
+                    // Do boundary check on shoe and set it to null if it's out of bounds
+                    if (++shoe_array[i]->y == Y_MAX - 1) {
+                        write_char(shoe_array[i]->x, shoe_array[i]->y, CLEAR_CHAR);
+                        shoe_array[i] = 0;
+                    }
+                }
             }
-            scrn[i][j] = CC;
+
+            // Move bullets
+            for (i = 0; i < MAX_BULLETS; i++) {
+                if (!bullet_array[i])continue;
+                move_entity(bullet_array[i]->x, bullet_array[i]->y, bullet_array[i]->x, bullet_array[i]->y - 1,
+                            BULLET_CHAR);
+
+                // Do boundary check on bullet and set it to null if it's out of bounds
+                if (--bullet_array[i]->y <= Y_MIN) {
+                    write_char(bullet_array[i]->x, bullet_array[i]->y, CLEAR_CHAR);
+                    bullet_array[i] = 0;
+                    continue;
+                }
+
+                // Check if the bullet hit a shoe
+                for (int j = 0; j < MAX_SHOES; j++) {
+                    if (!shoe_array[j])continue;
+                    if (shoe_array[j]->x == bullet_array[i]->x && shoe_array[j]->y == bullet_array[i]->y) {
+                        write_char(shoe_array[j]->x, shoe_array[j]->y, CLEAR_CHAR);
+                        shoe_array[j] = 0;
+                        bullet_array[i] = 0;
+                        continue;
+                    }
+                }
+            }
+
+            tick_count++;
         }
+
+        // Process input and move player
+        if (_kbhit()) {
+            char c = getch();
+            if (c == 'w') {
+                //TODO Shoot bullet
+                for (int i = 0; i < MAX_BULLETS; i++) {
+                    if (!bullet_array[i]) {
+                        bullet_array[i] = malloc(sizeof(struct position));
+                        bullet_array[i]->x = player.x;
+                        bullet_array[i]->y = player.y - 1;
+                        write_char(bullet_array[i]->x, bullet_array[i]->y, BULLET_CHAR);
+                        break;
+                    }
+                }
+            } else if (c == 's') {
+                if (player.y + 1 >= Y_MAX) goto endif;
+                move_entity(player.x, player.y, player.x, player.y + 1, PLAYER_CHAR);
+                player.y++;
+            } else if (c == 'a') {
+                if (player.x - 1 <= X_MIN) goto endif;
+                move_entity(player.x, player.y, player.x - 1, player.y, PLAYER_CHAR);
+                player.x--;
+            } else if (c == 'd') {
+                if (player.x + 1 >= X_MAX) goto endif;
+                move_entity(player.x, player.y, player.x + 1, player.y, PLAYER_CHAR);
+                player.x++;
+            } else if (c == 'q') {
+                exit(EXIT_SUCCESS);
+            }
+        }
+        endif:
+
+        // Sleep
+        _sleep(SLEEP_DELAY);
+        if (sleep_count < 1000) sleep_count++;
+        else sleep_count = 0;
     }
+    return 0;
 }
 
-ushort rndscrnx() {
-    return (rand() / (float) RAND_MAX) * SCREEN_WIDTH - 1;
+void write_char(unsigned int x, unsigned int y, char ch) {
+    COORD position = {x, y};
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
+    putchar(ch);
+}
+
+void write_text(unsigned int x, unsigned int y, char const *text) {
+    COORD position = {x, y};
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
+    puts(text);
+}
+
+void move_entity(unsigned int prevX, unsigned int prevY, unsigned int newX, unsigned int newY, char ch) {
+    write_char(prevX, prevY, CLEAR_CHAR);
+    write_char(newX, newY, ch);
 }
