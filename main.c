@@ -7,9 +7,9 @@
 #define BUFFER_WIDTH 80
 #define BUFFER_HEIGHT 40
 #define X_MIN 1
-#define Y_MIN 2
-#define X_MAX BUFFER_WIDTH - 1
-#define Y_MAX BUFFER_HEIGHT - 1
+#define Y_MIN 1
+#define X_MAX BUFFER_WIDTH - 2
+#define Y_MAX BUFFER_HEIGHT - 2
 #define SLEEP_DELAY 20
 #define SLEEPS_PER_TICK 10
 #define SHOE_SPAWN_RATE 10
@@ -32,9 +32,12 @@ void move_entity(unsigned int, unsigned int, unsigned int, unsigned int, char);
 
 void write_text(unsigned int, unsigned int, char const *);
 
+void update_score();
+
 static unsigned char running;
 static unsigned short sleep_count;
 static unsigned short tick_count;
+static unsigned short score;
 
 int main(void) {
 
@@ -43,15 +46,10 @@ int main(void) {
 
     // Draw play area
     COORD position = {0, 0};
-    for (int i = 0; i < BUFFER_WIDTH; i++) {
-        position.X = i;
-        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
-        write_char(position.X, position.Y, BORDER_CHAR);
-    }
-    for (int i = 0; i < BUFFER_HEIGHT; i++) {
+    for (int i = Y_MIN; i < BUFFER_HEIGHT; i++) {
         position.Y = i;
         SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), position);
-        write_char(position.X, position.Y, BORDER_CHAR);
+        write_char(BUFFER_WIDTH - 1, position.Y, BORDER_CHAR);
     }
     for (int i = BUFFER_WIDTH - 1; i > -1; i--) {
         position.X = i;
@@ -116,11 +114,13 @@ int main(void) {
                 // Check if the bullet hit a shoe
                 for (int j = 0; j < MAX_SHOES; j++) {
                     if (!shoe_array[j])continue;
-                    if (shoe_array[j]->x == bullet_array[i]->x && shoe_array[j]->y == bullet_array[i]->y) {
+                    if (shoe_array[j]->x == bullet_array[i]->x && shoe_array[j]->y >= bullet_array[i]->y) {
                         write_char(shoe_array[j]->x, shoe_array[j]->y, CLEAR_CHAR);
+                        write_char(bullet_array[i]->x, bullet_array[i]->y, CLEAR_CHAR);
                         shoe_array[j] = 0;
                         bullet_array[i] = 0;
-                        continue;
+                        score++;
+                        break;
                     }
                 }
             }
@@ -132,7 +132,6 @@ int main(void) {
         if (_kbhit()) {
             char c = getch();
             if (c == 'w') {
-                //TODO Shoot bullet
                 for (int i = 0; i < MAX_BULLETS; i++) {
                     if (!bullet_array[i]) {
                         bullet_array[i] = malloc(sizeof(struct position));
@@ -142,16 +141,12 @@ int main(void) {
                         break;
                     }
                 }
-            } else if (c == 's') {
-                if (player.y + 1 >= Y_MAX) goto endif;
-                move_entity(player.x, player.y, player.x, player.y + 1, PLAYER_CHAR);
-                player.y++;
             } else if (c == 'a') {
-                if (player.x - 1 <= X_MIN) goto endif;
+                if (player.x - 1 < X_MIN) goto endif;
                 move_entity(player.x, player.y, player.x - 1, player.y, PLAYER_CHAR);
                 player.x--;
             } else if (c == 'd') {
-                if (player.x + 1 >= X_MAX) goto endif;
+                if (player.x + 1 > X_MAX) goto endif;
                 move_entity(player.x, player.y, player.x + 1, player.y, PLAYER_CHAR);
                 player.x++;
             } else if (c == 'q') {
@@ -159,6 +154,8 @@ int main(void) {
             }
         }
         endif:
+
+        update_score(score);
 
         // Sleep
         _sleep(SLEEP_DELAY);
@@ -183,4 +180,10 @@ void write_text(unsigned int x, unsigned int y, char const *text) {
 void move_entity(unsigned int prevX, unsigned int prevY, unsigned int newX, unsigned int newY, char ch) {
     write_char(prevX, prevY, CLEAR_CHAR);
     write_char(newX, newY, ch);
+}
+
+void update_score() {
+    static char score_text[30];
+    sprintf(score_text, "Score: %010d", score);
+    write_text(0, 0, score_text);
 }
