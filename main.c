@@ -11,7 +11,7 @@ VOID ResizeEventProc(WINDOW_BUFFER_SIZE_RECORD);
 
 int main(VOID)
 {
-    DWORD cNumRead, fdwMode, i;
+    DWORD cNumRead, i;
     INPUT_RECORD irInBuf[128];
     int counter=0;
 
