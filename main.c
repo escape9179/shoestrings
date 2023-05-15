@@ -26,12 +26,6 @@ int main(VOID)
     if (! GetConsoleMode(hStdin, &fdwSaveOldMode) )
         ErrorExit("GetConsoleMode");
 
-    // Enable the window and mouse input events.
-
-    fdwMode = ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
-//    if (! SetConsoleMode(hStdin, fdwMode) )
-//        ErrorExit("SetConsoleMode");
-
     // Loop to read and handle the next 100 input events.
 
     while (counter++ <= 100)
