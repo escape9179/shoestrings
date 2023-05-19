@@ -2,19 +2,22 @@
 #include <cwchar>
 
 #define ESC "\x1b"
-#define CURSOR_UP(a) "["#a"A"
-#define CURSOR_DOWN(a) "["#a"B"
-#define CURSOR_LEFT(a) "["#a"D"
-#define CURSOR_RIGHT(a) "["#a"C"
+#define PLAYER_UP(a) "["#a"A"
+#define PLAYER_DOWN(a) "["#a"B"
+#define PLAYER_LEFT(a) "["#a"D"
+#define PLAYER_RIGHT(a) "["#a"C"
 
 int constexpr SCREEN_WIDTH = 120;
 int constexpr SCREEN_HEIGHT = 30;
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr UPDATES_PER_SECOND = 1000 / 60;
+int constexpr UPDATES_PER_SECOND = 1000 / 30;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
-int SCREEN_BUFFER[SCREEN_HEIGHT][SCREEN_WIDTH];
+char constexpr PLAYER_CHAR = 'o';
+int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+int playerX = 0;
+int playerY = 0;
 
 bool enableVirtualTerminalProcessing();
 
@@ -22,9 +25,12 @@ void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
 
 void renderScreen();
 
+void moveDown(int x, int y);
+
 int main() {
     enableVirtualTerminalProcessing();
     HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
+    printf(ESC "[?25l"); // Hide the cursor
     while (true) {
         renderScreen();
         Sleep(UPDATES_PER_SECOND);
@@ -49,8 +55,7 @@ void renderScreen() {
     for (int y = 0; y < SCREEN_HEIGHT; y++) {
         for (int x = 0; x < SCREEN_WIDTH; x++) {
             printf(ESC "[%i;%iH", y, x);
-            if (x % 2 == 0)printf("x");
-            else printf("o");
+            printf("%c", screenBuffer[y][x]);
         }
     }
 }
@@ -68,22 +73,46 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
+void moveDown() {
+    screenBuffer[playerY][playerX] = ' ';
+    playerY++;
+    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+}
+
+void moveUp() {
+    screenBuffer[playerY][playerX] = ' ';
+    playerY--;
+    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+}
+
+void moveLeft() {
+    screenBuffer[playerY][playerX] = ' ';
+    playerX--;
+    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+}
+
+void moveRight() {
+    screenBuffer[playerY][playerX] = ' ';
+    playerX++;
+    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+}
+
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
     if (!keyEventRecord.bKeyDown)
         return;
     WORD keyCode = keyEventRecord.wVirtualKeyCode;
     switch (keyCode) {
         case VK_OEM_PERIOD:
-            printf(ESC CURSOR_UP(1));
+            moveUp();
             break;
         case VK_U:
-            printf(ESC CURSOR_RIGHT(1));
+            moveRight();
             break;
         case VK_E:
-            printf(ESC CURSOR_DOWN(1));
+            moveDown();
             break;
         case VK_O:
-            printf(ESC CURSOR_LEFT(1));
+            moveLeft();
             break;
         default:
             printf("Pressed an unsupported key.\n");
