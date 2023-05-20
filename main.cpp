@@ -89,8 +89,8 @@ void clearPosition(int x, int y) {
 }
 
 void movePlayer(int x, int y) {
-    if (1 > x || x > SCREEN_WIDTH)x = player.x;
-    if (1 > y || y > SCREEN_HEIGHT)y = player.y;
+    if (SCREEN_LEFT > x || x > SCREEN_WIDTH)x = player.x;
+    if (SCREEN_TOP > y || y > SCREEN_HEIGHT)y = player.y;
     clearPosition(player.x, player.y);
     player.x = x;
     player.y = y;
