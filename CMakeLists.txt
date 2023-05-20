@@ -3,4 +3,4 @@ project(CPPTest)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(CPPTest main.c)
+add_executable(CPPTest main.cpp)
