@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <cwchar>
+#include <vector>
 
 #define ESC "\x1b"
 #define CSI ESC "["
@@ -18,15 +19,18 @@ int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
 int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 bool update = false;
 
+struct Color;
+struct Entity;
+
 bool enableVirtualTerminalProcessing();
 
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
 
-void drawPlayer();
-
 void clearPosition(int, int);
 
 void movePlayer(int, int);
+
+void drawEntity(Entity);
 
 struct Color {
     int r, g, b;
@@ -34,13 +38,16 @@ struct Color {
     Color(int r, int g, int b) : r{r}, g{g}, b{b} {
 
     }
-};
+} red(255, 0, 0), green(0, 255, 0);
 
-struct Player {
+struct Entity {
     int x = 0, y = 0;
-    char ch = 'o';
-    Color color = Color(255, 0, 0);
-} player;
+    char ch;
+    Color color;
+    Entity(char ch, Color color) : ch{ch}, color{color} {}
+} player('o', green), enemy('e', red);
+
+std::vector<Entity> enemies;
 
 int main() {
     enableVirtualTerminalProcessing();
@@ -78,9 +85,10 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
-void drawPlayer() {
-    printf(CSI "%i;%iH", player.y, player.x);
-    printf("%c", player.ch);
+void drawEntity(Entity entity) {
+    printf(CSI "38;2;%i;%i;%im", entity.color.r, entity.color.g, entity.color.b);
+    printf(CSI "%i;%iH", entity.y, entity.x);
+    printf("%c", entity.ch);
 }
 
 void clearPosition(int x, int y) {
@@ -94,7 +102,7 @@ void movePlayer(int x, int y) {
     clearPosition(player.x, player.y);
     player.x = x;
     player.y = y;
-    drawPlayer();
+    drawEntity(player);
 }
 
 void moveDown() {
