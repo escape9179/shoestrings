@@ -45,11 +45,11 @@ struct Player {
 int main() {
     enableVirtualTerminalProcessing();
     HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
-    printf(ESC "[?25l"); // Hide the cursor
+    printf(CSI "?25l"); // Hide the cursor
     printf(CSI "?1049h");
     while (true) {
         Sleep(UPDATES_PER_SECOND);
-        printf(ESC "[2 q");
+        printf(CSI "2 q");
         INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
         DWORD numEventsRead;
         PeekConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
