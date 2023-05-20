@@ -3,19 +3,18 @@
 
 #define ESC "\x1b"
 #define CSI ESC "["
-#define PLAYER_UP(a) "["#a"A"
-#define PLAYER_DOWN(a) "["#a"B"
-#define PLAYER_LEFT(a) "["#a"D"
-#define PLAYER_RIGHT(a) "["#a"C"
 
-int constexpr SCREEN_WIDTH = 120;
-int constexpr SCREEN_HEIGHT = 30;
 int constexpr READ_BUFFER_SIZE = 32;
 int constexpr UPDATES_PER_SECOND = 1000 / 60;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
-char constexpr PLAYER_CHAR = 'o';
+int constexpr SCREEN_BOTTOM = 30;
+int constexpr SCREEN_RIGHT = 120;
+int constexpr SCREEN_TOP = 1;
+int constexpr SCREEN_LEFT = 1;
+int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
+int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
 int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 bool update = false;
 
@@ -29,9 +28,18 @@ void clearPosition(int, int);
 
 void movePlayer(int, int);
 
+struct Color {
+    int r, g, b;
+
+    Color(int r, int g, int b) : r{r}, g{g}, b{b} {
+
+    }
+};
+
 struct Player {
-    int x = 0;
-    int y = 0;
+    int x = 0, y = 0;
+    char ch = 'o';
+    Color color = Color(255, 0, 0);
 } player;
 
 int main() {
@@ -73,7 +81,7 @@ bool enableVirtualTerminalProcessing() {
 
 void drawPlayer() {
     printf(CSI "%i;%iH", player.y, player.x);
-    printf("%c", PLAYER_CHAR);
+    printf("%c", player.ch);
 }
 
 void clearPosition(int x, int y) {
@@ -82,6 +90,8 @@ void clearPosition(int x, int y) {
 }
 
 void movePlayer(int x, int y) {
+    if (1 > x || x > SCREEN_WIDTH)x = player.x;
+    if (1 > y || y > SCREEN_HEIGHT)y = player.y;
     clearPosition(player.x, player.y);
     player.x = x;
     player.y = y;
