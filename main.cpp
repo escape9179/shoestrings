@@ -2,6 +2,7 @@
 #include <cwchar>
 
 #define ESC "\x1b"
+#define CSI ESC "["
 #define PLAYER_UP(a) "["#a"A"
 #define PLAYER_DOWN(a) "["#a"B"
 #define PLAYER_LEFT(a) "["#a"D"
@@ -10,29 +11,35 @@
 int constexpr SCREEN_WIDTH = 120;
 int constexpr SCREEN_HEIGHT = 30;
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr UPDATES_PER_SECOND = 1000 / 30;
+int constexpr UPDATES_PER_SECOND = 1000 / 60;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
 char constexpr PLAYER_CHAR = 'o';
 int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-int playerX = 0;
-int playerY = 0;
+bool update = false;
 
 bool enableVirtualTerminalProcessing();
 
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
 
-void renderScreen();
+void drawPlayer();
 
-void moveDown(int x, int y);
+void clearPosition(int, int);
+
+void movePlayer(int, int);
+
+struct Player {
+    int x = 0;
+    int y = 0;
+} player;
 
 int main() {
     enableVirtualTerminalProcessing();
     HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
     printf(ESC "[?25l"); // Hide the cursor
+    printf(CSI "?1049h");
     while (true) {
-        renderScreen();
         Sleep(UPDATES_PER_SECOND);
         printf(ESC "[2 q");
         INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
@@ -51,15 +58,6 @@ int main() {
     }
 }
 
-void renderScreen() {
-    for (int y = 0; y < SCREEN_HEIGHT; y++) {
-        for (int x = 0; x < SCREEN_WIDTH; x++) {
-            printf(ESC "[%i;%iH", y, x);
-            printf("%c", screenBuffer[y][x]);
-        }
-    }
-}
-
 bool enableVirtualTerminalProcessing() {
     HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     if (outputHandle == INVALID_HANDLE_VALUE)
@@ -73,28 +71,37 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
+void drawPlayer() {
+    printf(CSI "%i;%iH", player.y, player.x);
+    printf("%c", PLAYER_CHAR);
+}
+
+void clearPosition(int x, int y) {
+    printf(CSI "%i;%iH", y, x);
+    printf(CSI "1X");
+}
+
+void movePlayer(int x, int y) {
+    clearPosition(player.x, player.y);
+    player.x = x;
+    player.y = y;
+    drawPlayer();
+}
+
 void moveDown() {
-    screenBuffer[playerY][playerX] = ' ';
-    playerY++;
-    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+    movePlayer(player.x, player.y + 1);
 }
 
 void moveUp() {
-    screenBuffer[playerY][playerX] = ' ';
-    playerY--;
-    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+    movePlayer(player.x, player.y - 1);
 }
 
 void moveLeft() {
-    screenBuffer[playerY][playerX] = ' ';
-    playerX--;
-    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+    movePlayer(player.x - 1, player.y);
 }
 
 void moveRight() {
-    screenBuffer[playerY][playerX] = ' ';
-    playerX++;
-    screenBuffer[playerY][playerX] = PLAYER_CHAR;
+    movePlayer(player.x + 1, player.y);
 }
 
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
