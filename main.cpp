@@ -40,6 +40,8 @@ void moveEnemiesDownward();
 
 void handleInput();
 
+void enterGameLoop();
+
 struct Color {
     int r, g, b;
 
@@ -67,6 +69,9 @@ int main() {
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor
     printf(CSI "?1049h");
+}
+
+void enterGameLoop() {
     while (true) {
         handleInput();
         if (frameCount % FPS == 0) {
