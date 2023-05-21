@@ -19,6 +19,7 @@ int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
 int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
 int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 bool update = false;
+unsigned long frameCount = 0;
 
 struct Color;
 struct Entity;
@@ -27,13 +28,17 @@ bool enableVirtualTerminalProcessing();
 
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
 
-void clearPosition(int, int);
+void clearPosition(int x, int y);
 
-void movePlayer(int, int);
+void movePlayer(int x, int y);
 
 void drawEntity(Entity &);
 
 void drawEntities();
+
+void moveEnemiesDownward();
+
+void handleInput();
 
 struct Color {
     int r, g, b;
@@ -47,7 +52,9 @@ struct Entity {
     int x = 0, y = 0;
     char ch;
     Color color;
+
     Entity(char ch, Color color) : ch{ch}, color{color} {}
+
     Entity(char ch, Color color, int x, int y) : ch{ch}, color{color}, x{x}, y{y} {}
 } player('o', green), enemy('e', red);
 
@@ -58,25 +65,16 @@ int main() {
     enemies.emplace_back(enemy.ch, enemy.color, 10, 5);
 
     enableVirtualTerminalProcessing();
-    HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
     printf(CSI "?25l"); // Hide the cursor
     printf(CSI "?1049h");
     while (true) {
-        Sleep(UPDATES_PER_SECOND);
-        drawEntities();
-        INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
-        DWORD numEventsRead;
-        PeekConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
-        if (numEventsRead == 0)
-            continue;
-        ReadConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
-        for (int i = 0; i < numEventsRead; i++) {
-            switch (inputRecords[i].EventType) {
-                case KEY_EVENT:
-                    processKeyEvent(inputRecords[i].Event.KeyEvent);
-                    break;
-            }
+        handleInput();
+        if (frameCount % FPS == 0) {
+            moveEnemiesDownward();
         }
+        drawEntities();
+        frameCount++;
+        Sleep(UPDATES_PER_SECOND);
     }
 }
 
@@ -93,14 +91,36 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
+void handleInput() {
+    HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
+    INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
+    DWORD numEventsRead;
+    PeekConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
+    if (numEventsRead == 0)
+        return;
+    ReadConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
+    for (int i = 0; i < numEventsRead; i++) {
+        switch (inputRecords[i].EventType) {
+            case KEY_EVENT:
+                processKeyEvent(inputRecords[i].Event.KeyEvent);
+                break;
+        }
+    }
+}
+
+void moveEnemiesDownward() {
+    auto iterator = enemies.begin();
+    while (iterator != enemies.end()) {
+        clearPosition(iterator->x, iterator->y);
+        iterator++->y++;
+    }
+}
+
 void drawEntities() {
     drawEntity(player);
     auto iterator = enemies.begin();
     while (iterator != enemies.end()) {
-//        iterator->y++;
-//        iterator++->y++;
-        drawEntity(*iterator);
-        iterator++;
+        drawEntity(*iterator++);
     }
 }
 
