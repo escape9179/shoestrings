@@ -7,6 +7,7 @@
 
 int constexpr READ_BUFFER_SIZE = 32;
 int constexpr FPS = 60;
+int constexpr FALL_RATE = FPS / 2;
 int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
@@ -48,7 +49,7 @@ struct Color {
     Color(int r, int g, int b) : r{r}, g{g}, b{b} {
 
     }
-} red(255, 0, 0), green(0, 255, 0);
+} red(255, 0, 0), green(0, 255, 0), blue(0, 0, 255);
 
 struct Entity {
     int x = 0, y = 0;
@@ -58,23 +59,26 @@ struct Entity {
     Entity(char ch, Color color) : ch{ch}, color{color} {}
 
     Entity(char ch, Color color, int x, int y) : ch{ch}, color{color}, x{x}, y{y} {}
-} player('o', green), enemy('e', red);
+} player('o', green), enemy('e', red), bullet('x', blue);
 
-std::vector<Entity> enemies;
+std::vector<Entity> entities;
 
 int main() {
-    enemies.emplace_back(enemy.ch, enemy.color, 50, 20);
-    enemies.emplace_back(enemy.ch, enemy.color, 10, 5);
+    entities.emplace_back(enemy.ch, enemy.color, 50, 20);
+    entities.emplace_back(enemy.ch, enemy.color, 10, 5);
+    entities.emplace_back(bullet.ch, bullet.color, 2, 2);
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor
     printf(CSI "?1049h");
+
+    enterGameLoop();
 }
 
 void enterGameLoop() {
     while (true) {
         handleInput();
-        if (frameCount % FPS == 0) {
+        if (frameCount % FALL_RATE == 0) {
             moveEnemiesDownward();
         }
         drawEntities();
@@ -114,18 +118,25 @@ void handleInput() {
 }
 
 void moveEnemiesDownward() {
-    auto iterator = enemies.begin();
-    while (iterator != enemies.end()) {
-        clearPosition(iterator->x, iterator->y);
-        iterator++->y++;
+    auto iterator = entities.begin();
+    while (iterator != entities.end()) {
+        if (iterator->ch == enemy.ch) {
+            clearPosition(iterator->x, iterator->y);
+            iterator->y++;
+        }
+        iterator++;
     }
 }
 
 void drawEntities() {
-    drawEntity(player);
-    auto iterator = enemies.begin();
-    while (iterator != enemies.end()) {
-        drawEntity(*iterator++);
+    auto iterator = entities.begin();
+    while (iterator != entities.end()) {
+        if (iterator->ch == bullet.ch) {
+            printf(ESC "(0"); // Enter line drawing mode
+            drawEntity(*iterator);
+            printf(ESC "(B"); // Exit line drawing mode
+        } else drawEntity(*iterator);
+        iterator++;
     }
 }
 
