@@ -1,11 +1,13 @@
 #include <windows.h>
 #include <cwchar>
+#include <vector>
 
 #define ESC "\x1b"
 #define CSI ESC "["
 
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr UPDATES_PER_SECOND = 1000 / 60;
+int constexpr FPS = 60;
+int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
@@ -17,16 +19,26 @@ int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
 int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
 int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 bool update = false;
+unsigned long frameCount = 0;
+
+struct Color;
+struct Entity;
 
 bool enableVirtualTerminalProcessing();
 
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
 
-void drawPlayer();
+void clearPosition(int x, int y);
 
-void clearPosition(int, int);
+void movePlayer(int x, int y);
 
-void movePlayer(int, int);
+void drawEntity(Entity &);
+
+void drawEntities();
+
+void moveEnemiesDownward();
+
+void handleInput();
 
 struct Color {
     int r, g, b;
@@ -34,35 +46,35 @@ struct Color {
     Color(int r, int g, int b) : r{r}, g{g}, b{b} {
 
     }
-};
+} red(255, 0, 0), green(0, 255, 0);
 
-struct Player {
+struct Entity {
     int x = 0, y = 0;
-    char ch = 'o';
-    Color color = Color(255, 0, 0);
-} player;
+    char ch;
+    Color color;
+
+    Entity(char ch, Color color) : ch{ch}, color{color} {}
+
+    Entity(char ch, Color color, int x, int y) : ch{ch}, color{color}, x{x}, y{y} {}
+} player('o', green), enemy('e', red);
+
+std::vector<Entity> enemies;
 
 int main() {
+    enemies.emplace_back(enemy.ch, enemy.color, 50, 20);
+    enemies.emplace_back(enemy.ch, enemy.color, 10, 5);
+
     enableVirtualTerminalProcessing();
-    HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
     printf(CSI "?25l"); // Hide the cursor
     printf(CSI "?1049h");
     while (true) {
-        Sleep(UPDATES_PER_SECOND);
-        printf(CSI "2 q");
-        INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
-        DWORD numEventsRead;
-        PeekConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
-        if (numEventsRead == 0)
-            continue;
-        ReadConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
-        for (int i = 0; i < numEventsRead; i++) {
-            switch (inputRecords[i].EventType) {
-                case KEY_EVENT:
-                    processKeyEvent(inputRecords[i].Event.KeyEvent);
-                    break;
-            }
+        handleInput();
+        if (frameCount % FPS == 0) {
+            moveEnemiesDownward();
         }
+        drawEntities();
+        frameCount++;
+        Sleep(UPDATES_PER_SECOND);
     }
 }
 
@@ -79,9 +91,43 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
-void drawPlayer() {
-    printf(CSI "%i;%iH", player.y, player.x);
-    printf("%c", player.ch);
+void handleInput() {
+    HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
+    INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
+    DWORD numEventsRead;
+    PeekConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
+    if (numEventsRead == 0)
+        return;
+    ReadConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
+    for (int i = 0; i < numEventsRead; i++) {
+        switch (inputRecords[i].EventType) {
+            case KEY_EVENT:
+                processKeyEvent(inputRecords[i].Event.KeyEvent);
+                break;
+        }
+    }
+}
+
+void moveEnemiesDownward() {
+    auto iterator = enemies.begin();
+    while (iterator != enemies.end()) {
+        clearPosition(iterator->x, iterator->y);
+        iterator++->y++;
+    }
+}
+
+void drawEntities() {
+    drawEntity(player);
+    auto iterator = enemies.begin();
+    while (iterator != enemies.end()) {
+        drawEntity(*iterator++);
+    }
+}
+
+void drawEntity(Entity &entity) {
+    printf(CSI "38;2;%i;%i;%im", entity.color.r, entity.color.g, entity.color.b);
+    printf(CSI "%i;%iH", entity.y, entity.x);
+    printf("%c", entity.ch);
 }
 
 void clearPosition(int x, int y) {
@@ -90,12 +136,12 @@ void clearPosition(int x, int y) {
 }
 
 void movePlayer(int x, int y) {
-    if (1 > x || x > SCREEN_WIDTH)x = player.x;
-    if (1 > y || y > SCREEN_HEIGHT)y = player.y;
+    if (SCREEN_LEFT > x || x > SCREEN_WIDTH)x = player.x;
+    if (SCREEN_TOP > y || y > SCREEN_HEIGHT)y = player.y;
     clearPosition(player.x, player.y);
     player.x = x;
     player.y = y;
-    drawPlayer();
+    drawEntity(player);
 }
 
 void moveDown() {
