@@ -6,7 +6,8 @@
 #define CSI ESC "["
 
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr UPDATES_PER_SECOND = 1000 / 60;
+int constexpr FPS = 60;
+int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
@@ -30,7 +31,9 @@ void clearPosition(int, int);
 
 void movePlayer(int, int);
 
-void drawEntity(Entity);
+void drawEntity(Entity &);
+
+void drawEntities();
 
 struct Color {
     int r, g, b;
@@ -45,17 +48,22 @@ struct Entity {
     char ch;
     Color color;
     Entity(char ch, Color color) : ch{ch}, color{color} {}
+    Entity(char ch, Color color, int x, int y) : ch{ch}, color{color}, x{x}, y{y} {}
 } player('o', green), enemy('e', red);
 
 std::vector<Entity> enemies;
 
 int main() {
+    enemies.emplace_back(enemy.ch, enemy.color, 50, 20);
+    enemies.emplace_back(enemy.ch, enemy.color, 10, 5);
+
     enableVirtualTerminalProcessing();
     HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
     printf(CSI "?25l"); // Hide the cursor
     printf(CSI "?1049h");
     while (true) {
         Sleep(UPDATES_PER_SECOND);
+        drawEntities();
         INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
         DWORD numEventsRead;
         PeekConsoleInput(inputHandle, inputRecords, READ_BUFFER_SIZE, &numEventsRead);
@@ -85,7 +93,18 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
-void drawEntity(Entity entity) {
+void drawEntities() {
+    drawEntity(player);
+    auto iterator = enemies.begin();
+    while (iterator != enemies.end()) {
+//        iterator->y++;
+//        iterator++->y++;
+        drawEntity(*iterator);
+        iterator++;
+    }
+}
+
+void drawEntity(Entity &entity) {
     printf(CSI "38;2;%i;%i;%im", entity.color.r, entity.color.g, entity.color.b);
     printf(CSI "%i;%iH", entity.y, entity.x);
     printf("%c", entity.ch);
