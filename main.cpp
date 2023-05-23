@@ -1,6 +1,9 @@
 #include <windows.h>
 #include <cwchar>
 #include <vector>
+#include <memory>
+#include "Color.h"
+#include "Entity.h"
 
 #define ESC "\x1b"
 #define CSI ESC "["
@@ -18,73 +21,32 @@ int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
 int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
 int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
-int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-bool update = false;
 unsigned long frameCount = 0;
 
-struct Color;
-struct Entity;
-
-bool enableVirtualTerminalProcessing();
-
-void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
-
-void clearPosition(int x, int y);
-
-void movePlayer(int x, int y);
-
-void drawEntity(Entity &);
-
-void drawEntities();
-
-void moveEnemiesDownward();
-
-void handleInput();
-
-void enterGameLoop();
-
-struct Color {
-    int r, g, b;
-
-    Color(int r, int g, int b) : r{r}, g{g}, b{b} {
-
-    }
-} red(255, 0, 0), green(0, 255, 0), blue(0, 0, 255);
-
-struct Entity {
-    int x = 0, y = 0;
-    char ch;
-    Color color;
-
-    Entity(char ch, Color color) : ch{ch}, color{color} {}
-
-    Entity(char ch, Color color, int x, int y) : ch{ch}, color{color}, x{x}, y{y} {}
-} player('o', green), enemy('e', red), bullet('x', blue);
+Color RED(255, 0, 0);
+Color GREEN(0, 255, 0);
+Color BLUE(0, 0, 255);
+Color WHITE(255, 255, 255);
 
 std::vector<Entity> entities;
 
-int main() {
-    entities.emplace_back(enemy.ch, enemy.color, 50, 20);
-    entities.emplace_back(enemy.ch, enemy.color, 10, 5);
-    entities.emplace_back(bullet.ch, bullet.color, 2, 2);
+Entity player(EntityType::PLAYER, 10, 10, GREEN);
 
-    enableVirtualTerminalProcessing();
-    printf(CSI "?25l"); // Hide the cursor
-    printf(CSI "?1049h");
-
-    enterGameLoop();
+void printDebugMessage(char const *message) {
+//    printf(ESC "7"); // Save cursor position
+    printf(CSI "%i;%i", 10, 10);
+    printf(CSI "2K"); // Erase entire line
+    puts(message);
+//    printf(ESC "8"); // Restore cursor position
 }
 
-void enterGameLoop() {
-    while (true) {
-        handleInput();
-        if (frameCount % FALL_RATE == 0) {
-            moveEnemiesDownward();
-        }
-        drawEntities();
-        frameCount++;
-        Sleep(UPDATES_PER_SECOND);
-    }
+void spawnEntity(EntityType type, int x, int y) {
+    entities.emplace_back(type, x, y);
+}
+
+void destroyEntity(const Entity &entity) {
+    auto it = std::find(entities.begin(), entities.end(), entity);
+    entities.erase(it);
 }
 
 bool enableVirtualTerminalProcessing() {
@@ -100,6 +62,89 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
+void drawEntity(const Entity &entity) {
+    printf(CSI "38;2;%i;%i;%im", entity.getColor().r, entity.getColor().g, entity.getColor().b);
+//    printf(CSI "38;2;%i;%i;%im", 255, 255, 255);
+    printf(CSI "%i;%iH", entity.getY(), entity.getX());
+    printf("%c", entity.getChar());
+}
+
+void drawBulletEntity(const Entity &entity) {
+    printf(ESC "(0");
+    drawEntity(entity);
+    printf(ESC "(B");
+}
+
+void drawEntityByType(const Entity &entity) {
+    switch (entity.getType()) {
+        case ENEMY:
+        case PLAYER:
+            drawEntity(entity);
+            break;
+        case BULLET:
+            drawBulletEntity(entity);
+            break;
+    }
+}
+
+void drawEntities() {
+    drawEntity(player);
+    for (const auto &entity: entities) {
+        drawEntityByType(entity);
+    }
+}
+
+void clearPosition(int x, int y) {
+    printf(CSI "%i;%iH", y, x);
+    printf(CSI "1X");
+}
+
+void moveEntityDownwardIfEnemy(Entity &entity) {
+    if (entity.getType() == ENEMY) {
+        clearPosition(entity.getX(), entity.getY());
+        entity.setY(entity.getY() + 1);
+    }
+}
+
+void moveEnemiesDownward() {
+    for (auto &entity: entities) {
+        moveEntityDownwardIfEnemy(entity);
+    }
+}
+
+void movePlayer(int x, int y) {
+    if (SCREEN_LEFT > x || x > SCREEN_WIDTH)x = player.getX();
+    if (SCREEN_TOP > y || y > SCREEN_HEIGHT)y = player.getY();
+    clearPosition(player.getX(), player.getY());
+    player.setX(x);
+    player.setY(y);
+}
+
+void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
+    if (!keyEventRecord.bKeyDown)
+        return;
+    WORD keyCode = keyEventRecord.wVirtualKeyCode;
+    switch (keyCode) {
+        case VK_OEM_PERIOD:
+            movePlayer(player.getX(), player.getY() - 1);
+            break;
+        case VK_U:
+            movePlayer(player.getX() + 1, player.getY());
+            break;
+        case VK_E:
+            movePlayer(player.getX(), player.getY() + 1);
+            break;
+        case VK_O:
+            movePlayer(player.getX() - 1, player.getY());
+            break;
+        case VK_SHIFT:
+            exit(0);
+            break;
+        default:
+            printf("Pressed an unsupported key.\n");
+            break;
+    }
+}
 void handleInput() {
     HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
     INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
@@ -116,85 +161,26 @@ void handleInput() {
         }
     }
 }
-
-void moveEnemiesDownward() {
-    auto iterator = entities.begin();
-    while (iterator != entities.end()) {
-        if (iterator->ch == enemy.ch) {
-            clearPosition(iterator->x, iterator->y);
-            iterator->y++;
+void enterGameLoop() {
+    while (true) {
+        handleInput();
+        if (frameCount % FALL_RATE == 0) {
+            moveEnemiesDownward();
         }
-        iterator++;
+        drawEntities();
+        frameCount++;
+        Sleep(UPDATES_PER_SECOND);
     }
 }
 
-void drawEntities() {
-    auto iterator = entities.begin();
-    while (iterator != entities.end()) {
-        if (iterator->ch == bullet.ch) {
-            printf(ESC "(0"); // Enter line drawing mode
-            drawEntity(*iterator);
-            printf(ESC "(B"); // Exit line drawing mode
-        } else drawEntity(*iterator);
-        iterator++;
-    }
-}
+int main() {
+    spawnEntity(ENEMY, 50, 20);
+    spawnEntity(ENEMY, 10, 5);
+    spawnEntity(BULLET, 70, 20);
 
-void drawEntity(Entity &entity) {
-    printf(CSI "38;2;%i;%i;%im", entity.color.r, entity.color.g, entity.color.b);
-    printf(CSI "%i;%iH", entity.y, entity.x);
-    printf("%c", entity.ch);
-}
+    enableVirtualTerminalProcessing();
+    printf(CSI "?25l"); // Hide the cursor
+    printf(CSI "?1049h");
 
-void clearPosition(int x, int y) {
-    printf(CSI "%i;%iH", y, x);
-    printf(CSI "1X");
-}
-
-void movePlayer(int x, int y) {
-    if (SCREEN_LEFT > x || x > SCREEN_WIDTH)x = player.x;
-    if (SCREEN_TOP > y || y > SCREEN_HEIGHT)y = player.y;
-    clearPosition(player.x, player.y);
-    player.x = x;
-    player.y = y;
-    drawEntity(player);
-}
-
-void moveDown() {
-    movePlayer(player.x, player.y + 1);
-}
-
-void moveUp() {
-    movePlayer(player.x, player.y - 1);
-}
-
-void moveLeft() {
-    movePlayer(player.x - 1, player.y);
-}
-
-void moveRight() {
-    movePlayer(player.x + 1, player.y);
-}
-
-void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
-    if (!keyEventRecord.bKeyDown)
-        return;
-    WORD keyCode = keyEventRecord.wVirtualKeyCode;
-    switch (keyCode) {
-        case VK_OEM_PERIOD:
-            moveUp();
-            break;
-        case VK_U:
-            moveRight();
-            break;
-        case VK_E:
-            moveDown();
-            break;
-        case VK_O:
-            moveLeft();
-            break;
-        default:
-            printf("Pressed an unsupported key.\n");
-            break;
-    }
+    enterGameLoop();
 }
