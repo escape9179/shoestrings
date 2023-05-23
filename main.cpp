@@ -10,6 +10,7 @@
 int constexpr READ_BUFFER_SIZE = 32;
 int constexpr FPS = 60;
 int constexpr FALL_RATE = FPS / 2;
+int constexpr BULLET_MOVE_RATE = FPS / 10;
 int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
@@ -114,13 +115,27 @@ void movePlayer(int x, int y) {
     player.setY(y);
 }
 
+void shootBullet() {
+    int x = player.getX();
+    int y = player.getY() - 1;
+    spawnEntity(BULLET, x, y);
+}
+
+void moveBulletsUp() {
+    for (Entity &entity: entities)
+        if (entity.getType() == BULLET) {
+            clearPosition(entity.getX(), entity.getY());
+            entity.setY(entity.getY() - 1);
+        }
+}
+
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
     if (!keyEventRecord.bKeyDown)
         return;
     WORD keyCode = keyEventRecord.wVirtualKeyCode;
     switch (keyCode) {
         case VK_OEM_PERIOD:
-            movePlayer(player.getX(), player.getY() - 1);
+            shootBullet();
             break;
         case VK_U:
             movePlayer(player.getX() + 1, player.getY());
@@ -139,6 +154,7 @@ void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
             break;
     }
 }
+
 void handleInput() {
     HANDLE inputHandle = GetStdHandle(STD_INPUT_HANDLE);
     INPUT_RECORD inputRecords[READ_BUFFER_SIZE];
@@ -155,12 +171,19 @@ void handleInput() {
         }
     }
 }
+
+void checkCollisions() {
+
+}
+
 void enterGameLoop() {
     while (true) {
         handleInput();
-        if (frameCount % FALL_RATE == 0) {
+        if (frameCount % FALL_RATE == 0)
             moveEnemiesDownward();
-        }
+        if (frameCount % BULLET_MOVE_RATE == 0)
+            moveBulletsUp();
+        checkCollisions();
         drawEntities();
         frameCount++;
         Sleep(UPDATES_PER_SECOND);
@@ -170,7 +193,6 @@ void enterGameLoop() {
 int main() {
     spawnEntity(ENEMY, 50, 20);
     spawnEntity(ENEMY, 10, 5);
-    spawnEntity(BULLET, 70, 20);
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor
