@@ -1,7 +1,6 @@
 #include <windows.h>
 #include <cwchar>
 #include <vector>
-#include <memory>
 #include "Color.h"
 #include "Entity.h"
 
@@ -23,14 +22,9 @@ int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
 int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
 unsigned long frameCount = 0;
 
-Color RED(255, 0, 0);
-Color GREEN(0, 255, 0);
-Color BLUE(0, 0, 255);
-Color WHITE(255, 255, 255);
-
 std::vector<Entity> entities;
 
-Entity player(EntityType::PLAYER, 10, 10, GREEN);
+Entity player(EntityType::PLAYER, 10, 10, Color::getGreen());
 
 void printDebugMessage(char const *message) {
 //    printf(ESC "7"); // Save cursor position

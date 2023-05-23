@@ -5,11 +5,6 @@
 #include "Entity.h"
 #include "Color.h"
 
-extern Color RED;
-extern Color GREEN;
-extern Color BLUE;
-extern Color WHITE;
-
 int Entity::lastId = 0;
 
 Entity::Entity(EntityType type) : Entity(type, 0, 0, getColorOfEntity(type)) {}
@@ -65,9 +60,9 @@ char Entity::getCharacterByEntityType(EntityType type) const {
 }
 
 Color Entity::getColorOfEntity(EntityType type) const {
-    if (type == PLAYER) return GREEN;
-    else if (type == ENEMY) return RED;
-    else if (type == BULLET) return BLUE;
-    else return WHITE;
+    if (type == PLAYER) return Color::getGreen();
+    else if (type == ENEMY) return Color::getRed();
+    else if (type == BULLET) return Color::getBlue();
+    else return Color::getWhite();
 }
 

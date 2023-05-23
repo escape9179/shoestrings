@@ -5,10 +5,17 @@
 #ifndef CPPTEST_COLOR_H
 #define CPPTEST_COLOR_H
 
+
 struct Color {
     int r, g, b;
 
-    Color(int r, int g, int b) : r{r}, g{g}, b{b} {}
+    static Color getRed();
+
+    static Color getGreen();
+
+    static Color getBlue();
+
+    static Color getWhite();
 };
 
 #endif //CPPTEST_COLOR_H
