@@ -20,6 +20,7 @@ int constexpr SCREEN_BOTTOM = 29;
 int constexpr SCREEN_RIGHT = 120;
 int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
+int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
 unsigned long frameCount = 0;
 
 std::vector<Entity> entities;
@@ -28,7 +29,8 @@ Entity player;
 
 template<typename... Args>
 void setStatusMessage(const char *message, Args... args) {
-    printf(CSI "%i;%iH", SCREEN_BOTTOM + 1, SCREEN_LEFT);
+    printf(CSI "0m");
+    printf(CSI "%i;%iH", STATUS_MESSAGE_ROW, SCREEN_LEFT);
     printf(message, args...);
 }
 
