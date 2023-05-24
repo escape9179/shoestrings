@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <cwchar>
 #include <vector>
+#include <chrono>
 #include "Color.h"
 #include "Entity.h"
 
@@ -15,7 +16,7 @@ int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
-int constexpr SCREEN_BOTTOM = 30;
+int constexpr SCREEN_BOTTOM = 29;
 int constexpr SCREEN_RIGHT = 120;
 int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
@@ -24,6 +25,12 @@ unsigned long frameCount = 0;
 std::vector<Entity> entities;
 
 Entity player;
+
+template<typename... Args>
+void setStatusMessage(const char *message, Args... args) {
+    printf(CSI "%i;%iH", SCREEN_BOTTOM + 1, SCREEN_LEFT);
+    printf(message, args...);
+}
 
 void spawnEntity(EntityType type, int x, int y) {
     entities.emplace_back(type, x, y);
@@ -184,6 +191,7 @@ void handleInput() {
 
 void enterGameLoop() {
     while (true) {
+        auto t1 = std::chrono::high_resolution_clock::now();
         handleInput();
         if (frameCount % FALL_RATE == 0)
             moveEnemiesDownward();
@@ -191,6 +199,9 @@ void enterGameLoop() {
             moveBulletsUp();
         drawEntities();
         frameCount++;
+        auto t2 = std::chrono::high_resolution_clock::now();
+        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        setStatusMessage("Time span: %f", timeSpan.count());
         Sleep(UPDATES_PER_SECOND);
     }
 }
