@@ -9,10 +9,10 @@
 #define CSI ESC "["
 
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr FPS = 60;
-int constexpr FALL_RATE = FPS / 2;
-int constexpr BULLET_MOVE_RATE = FPS / 20;
-int constexpr UPDATES_PER_SECOND = 1000 / FPS;
+int constexpr TARGET_FPS = 60;
+std::chrono::duration<double, std::milli> FRAME_DURATION(1000 / TARGET_FPS);
+int constexpr FALL_RATE = TARGET_FPS / 2;
+int constexpr BULLET_MOVE_RATE = TARGET_FPS / 20;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
@@ -193,7 +193,7 @@ void handleInput() {
 
 void enterGameLoop() {
     while (true) {
-        auto t1 = std::chrono::high_resolution_clock::now();
+        auto previousTime = std::chrono::high_resolution_clock::now();
         handleInput();
         if (frameCount % FALL_RATE == 0)
             moveEnemiesDownward();
@@ -201,10 +201,15 @@ void enterGameLoop() {
             moveBulletsUp();
         drawEntities();
         frameCount++;
-        auto t2 = std::chrono::high_resolution_clock::now();
-        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-        setStatusMessage("Time span: %f", timeSpan.count());
-        Sleep(UPDATES_PER_SECOND);
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsedTime = currentTime - previousTime;
+
+        if (elapsedTime < FRAME_DURATION) {
+            auto sleepDuration = FRAME_DURATION - elapsedTime;
+            std::this_thread::sleep_for(sleepDuration);
+        }
+
+        previousTime = std::chrono::steady_clock::now();
     }
 }
 
