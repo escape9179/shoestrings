@@ -7,15 +7,13 @@
 
 
 struct Color {
+    static const Color RED;
+    static const Color GREEN;
+    static const Color BLUE;
+    static const Color WHITE;
+    static const Color MAGENTA;
+
     int r, g, b;
-
-    static Color getRed();
-
-    static Color getGreen();
-
-    static Color getBlue();
-
-    static Color getWhite();
 };
 
 #endif //CPPTEST_COLOR_H

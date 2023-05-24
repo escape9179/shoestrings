@@ -50,6 +50,8 @@ public:
 
     bool operator==(const Entity &other) const;
 
+    Entity();
+
 private:
     char getCharacterByEntityType(EntityType type) const;
 

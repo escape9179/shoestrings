@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <cwchar>
 #include <vector>
+#include <optional>
 #include "Color.h"
 #include "Entity.h"
 
@@ -19,21 +20,11 @@ int constexpr SCREEN_BOTTOM = 30;
 int constexpr SCREEN_RIGHT = 120;
 int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
-int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
-int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
 unsigned long frameCount = 0;
 
 std::vector<Entity> entities;
 
-Entity player(EntityType::PLAYER, 10, 10, Color::getGreen());
-
-void printDebugMessage(char const *message) {
-//    printf(ESC "7"); // Save cursor position
-    printf(CSI "%i;%i", 10, 10);
-    printf(CSI "2K"); // Erase entire line
-    puts(message);
-//    printf(ESC "8"); // Restore cursor position
-}
+Entity player;
 
 void spawnEntity(EntityType type, int x, int y) {
     entities.emplace_back(type, x, y);
@@ -107,12 +98,30 @@ void moveEnemiesDownward() {
     }
 }
 
+auto getEntityAtPosition(int x, int y) {
+    return std::find_if(entities.begin(), entities.end(), [=] (const Entity &entity) {
+        return entity.getX() == x && entity.getY() == y;
+    });
+}
+
+void moveEntity(Entity &entity, int x, int y) {
+    if (SCREEN_LEFT > x || x > SCREEN_RIGHT) return;
+    if (SCREEN_TOP > y || y > SCREEN_BOTTOM) return;
+    clearPosition(entity.getX(), entity.getY());
+    auto entityAtPosition = getEntityAtPosition(x, y);
+    if (entityAtPosition == std::end(entities)) {
+        entity.setX(x);
+        entity.setY(y);
+        return;
+    }
+
+    if (entity.getType() == BULLET) {
+        destroyEntity(*entityAtPosition);
+    }
+}
+
 void movePlayer(int x, int y) {
-    if (SCREEN_LEFT > x || x > SCREEN_WIDTH)x = player.getX();
-    if (SCREEN_TOP > y || y > SCREEN_HEIGHT)y = player.getY();
-    clearPosition(player.getX(), player.getY());
-    player.setX(x);
-    player.setY(y);
+    moveEntity(player, x, y);
 }
 
 void shootBullet() {
@@ -124,8 +133,7 @@ void shootBullet() {
 void moveBulletsUp() {
     for (Entity &entity: entities)
         if (entity.getType() == BULLET) {
-            clearPosition(entity.getX(), entity.getY());
-            entity.setY(entity.getY() - 1);
+            moveEntity(entity, entity.getX(), entity.getY() - 1);
         }
 }
 
@@ -172,10 +180,6 @@ void handleInput() {
     }
 }
 
-void checkCollisions() {
-
-}
-
 void enterGameLoop() {
     while (true) {
         handleInput();
@@ -183,7 +187,6 @@ void enterGameLoop() {
             moveEnemiesDownward();
         if (frameCount % BULLET_MOVE_RATE == 0)
             moveBulletsUp();
-        checkCollisions();
         drawEntities();
         frameCount++;
         Sleep(UPDATES_PER_SECOND);
@@ -191,6 +194,7 @@ void enterGameLoop() {
 }
 
 int main() {
+    player = {PLAYER, 10 ,10, Color::GREEN};
     spawnEntity(ENEMY, 50, 20);
     spawnEntity(ENEMY, 10, 5);
 
