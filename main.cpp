@@ -1,7 +1,6 @@
 #include <windows.h>
 #include <cwchar>
 #include <vector>
-#include <optional>
 #include "Color.h"
 #include "Entity.h"
 
@@ -11,7 +10,7 @@
 int constexpr READ_BUFFER_SIZE = 32;
 int constexpr FPS = 60;
 int constexpr FALL_RATE = FPS / 2;
-int constexpr BULLET_MOVE_RATE = FPS / 10;
+int constexpr BULLET_MOVE_RATE = FPS / 20;
 int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
@@ -98,18 +97,21 @@ void moveEnemiesDownward() {
     }
 }
 
-auto getEntityAtPosition(int x, int y) {
-    return std::find_if(entities.begin(), entities.end(), [=] (const Entity &entity) {
+Entity *getEntityAtPosition(int x, int y) {
+    auto result = std::find_if(entities.begin(), entities.end(), [=] (const Entity &entity) {
         return entity.getX() == x && entity.getY() == y;
     });
+    return result == entities.end() ? nullptr : &*result;
 }
 
 void moveEntity(Entity &entity, int x, int y) {
     if (SCREEN_LEFT > x || x > SCREEN_RIGHT) return;
     if (SCREEN_TOP > y || y > SCREEN_BOTTOM) return;
     clearPosition(entity.getX(), entity.getY());
+
+    /* Perform collision detection with other entities. */
     auto entityAtPosition = getEntityAtPosition(x, y);
-    if (entityAtPosition == std::end(entities)) {
+    if (entityAtPosition == nullptr) {
         entity.setX(x);
         entity.setY(y);
         return;
