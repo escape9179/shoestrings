@@ -12,7 +12,6 @@
 
 int constexpr READ_BUFFER_SIZE = 32;
 float constexpr FALL_SPEED = 1.0f;
-float constexpr BULLET_SPEED = 4.0f;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
@@ -23,7 +22,6 @@ int constexpr SCREEN_LEFT = 1;
 int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
 
 std::vector<Entity *> entities;
-//std::vector<Bullet> bullets;
 
 Entity player;
 
@@ -99,7 +97,7 @@ void drawEntities() {
 }
 
 void clearPosition(int x, int y) {
-    printf(CSI "%i;%iH", y, x);
+    setCursorPosition(x, y);
     printf(CSI "1X");
 }
 
@@ -203,7 +201,13 @@ void handleInput() {
 static int updates = 0;
 void update(float deltaTime) {
     moveEnemiesDownward(deltaTime);
-    std::for_each(entities.begin(), entities.end(), [deltaTime] (Entity *entity) { entity->update(deltaTime); });
+    std::for_each(entities.begin(), entities.end(), [deltaTime] (Entity *entity) {
+        float x = entity->getX();
+        float y = entity->getY();
+        entity->update(deltaTime);
+        if ((int)entity->getY() != (int)y || (int)entity->getX() != (int)x)
+            clearPosition(x, y);
+    });
     //    std::for_each(bullets.begin(), bullets.end(), [deltaTime] (Bullet &bullet) { Bullet::update(deltaTime); });
     updates++;
 }
@@ -219,13 +223,12 @@ void enterGameLoop() {
         drawEntities();
 
         previousTime = currentTime;
-        setStatusMessage("updates: %i, e0y: %f, entities: %i, delta: %f, FPS: %f", updates, entities[0]->getY(), entities.size(), deltaTime.count(), 1/deltaTime.count());
+        setStatusMessage("e: %i\tdt: %f\tfps: %f", entities.size(), deltaTime.count(), 1/deltaTime.count());
     }
 }
 
 int main() {
     player = {PLAYER, 10, 10, Color::GREEN};
-    entities.push_back(new Bullet(60, 29));
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor

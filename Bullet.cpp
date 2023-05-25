@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include "Bullet.h"
 
-const float Bullet::SPEED = 1.0f;
+const float Bullet::SPEED = 10.0f;
 
 void Bullet::update(float deltaTime) {
     setY(getY() - (SPEED * deltaTime));
