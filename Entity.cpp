@@ -50,6 +50,10 @@ EntityType Entity::getType() const {
     return type;
 }
 
+void Entity::update(float deltaTime) {
+
+}
+
 bool Entity::operator==(const Entity &other) const {
     return id == other.id;
 }

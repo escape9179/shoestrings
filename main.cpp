@@ -5,6 +5,7 @@
 #include <random>
 #include "Color.h"
 #include "Entity.h"
+#include "Bullet.h"
 
 #define ESC "\x1b"
 #define CSI ESC "["
@@ -21,7 +22,8 @@ int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
 int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
 
-std::vector<Entity> entities;
+std::vector<Entity *> entities;
+//std::vector<Bullet> bullets;
 
 Entity player;
 
@@ -37,11 +39,17 @@ void setStatusMessage(const char *message, Args... args) {
 }
 
 void spawnEntity(EntityType type, int x, int y) {
-    entities.emplace_back(type, x, y);
+    switch (type) {
+        case BULLET:
+            entities.push_back(new Bullet(x, y));
+            break;
+        default:
+            entities.push_back(new Entity(type, x, y));
+    }
 }
 
 void destroyEntity(const Entity &entity) {
-    auto it = std::find(entities.begin(), entities.end(), entity);
+    auto it = std::find(entities.begin(), entities.end(), &entity);
     entities.erase(it);
 }
 
@@ -85,8 +93,8 @@ void drawEntityByType(const Entity &entity) {
 
 void drawEntities() {
     drawEntity(player);
-    for (const auto &entity: entities) {
-        drawEntityByType(entity);
+    for (const auto entity: entities) {
+        drawEntityByType(*entity);
     }
 }
 
@@ -105,16 +113,16 @@ void moveEntityDownwardIfEnemy(Entity &entity, float seconds) {
 }
 
 void moveEnemiesDownward(float seconds) {
-    for (auto &entity: entities) {
-        moveEntityDownwardIfEnemy(entity, seconds);
+    for (auto entity: entities) {
+        moveEntityDownwardIfEnemy(*entity, seconds);
     }
 }
 
 Entity *getEntityAtPosition(int x, int y) {
-    auto result = std::find_if(entities.begin(), entities.end(), [=] (const Entity &entity) {
-        return entity.getX() == x && entity.getY() == y;
+    auto result = std::find_if(entities.begin(), entities.end(), [=] (const Entity *entity) {
+        return entity->getX() == x && entity->getY() == y;
     });
-    return result == entities.end() ? nullptr : &*result;
+    return result == entities.end() ? nullptr : *result;
 }
 
 void moveEntity(Entity &entity, int x, int y) {
@@ -143,13 +151,6 @@ void shootBullet() {
     int x = player.getX();
     int y = player.getY() - 1;
     spawnEntity(BULLET, x, y);
-}
-
-void moveBulletsUp() {
-    for (Entity &entity: entities)
-        if (entity.getType() == BULLET) {
-            moveEntity(entity, entity.getX(), entity.getY() - 1);
-        }
 }
 
 void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
@@ -199,9 +200,12 @@ void handleInput() {
     }
 }
 
-void update(float seconds) {
-    moveEnemiesDownward(seconds);
-//    moveBulletsUp(seconds);
+static int updates = 0;
+void update(float deltaTime) {
+    moveEnemiesDownward(deltaTime);
+    std::for_each(entities.begin(), entities.end(), [deltaTime] (Entity *entity) { entity->update(deltaTime); });
+    //    std::for_each(bullets.begin(), bullets.end(), [deltaTime] (Bullet &bullet) { Bullet::update(deltaTime); });
+    updates++;
 }
 
 void enterGameLoop() {
@@ -215,12 +219,13 @@ void enterGameLoop() {
         drawEntities();
 
         previousTime = currentTime;
-        setStatusMessage("entities: %i, delta: %f, FPS: %f", entities.size(), deltaTime.count(), 1/deltaTime.count());
+        setStatusMessage("updates: %i, e0y: %f, entities: %i, delta: %f, FPS: %f", updates, entities[0]->getY(), entities.size(), deltaTime.count(), 1/deltaTime.count());
     }
 }
 
 int main() {
     player = {PLAYER, 10, 10, Color::GREEN};
+    entities.push_back(new Bullet(60, 29));
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor

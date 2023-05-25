@@ -48,6 +48,8 @@ public:
 
     EntityType getType() const;
 
+    virtual void update(float deltaTime);
+
     bool operator==(const Entity &other) const;
 
     Entity();
