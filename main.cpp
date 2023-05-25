@@ -2,6 +2,7 @@
 #include <cwchar>
 #include <vector>
 #include <chrono>
+#include <random>
 #include "Color.h"
 #include "Entity.h"
 
@@ -170,9 +171,13 @@ void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
             break;
         case VK_SHIFT:
             exit(0);
+        case VK_CONTROL: {
+            std::random_device rd;
+            std::uniform_int_distribution<int> distribution(SCREEN_LEFT, SCREEN_RIGHT);
+            spawnEntity(ENEMY, distribution(rd), 1);
             break;
+        }
         default:
-            printf("Pressed an unsupported key.\n");
             break;
     }
 }
@@ -210,13 +215,11 @@ void enterGameLoop() {
         drawEntities();
 
         previousTime = currentTime;
-        setStatusMessage("e0: %f, entities: %i, delta: %f, FPS: %f", entities[0].getY(), entities.size(), deltaTime.count(), 1/deltaTime.count());
+        setStatusMessage("entities: %i, delta: %f, FPS: %f", entities.size(), deltaTime.count(), 1/deltaTime.count());
     }
 }
 
 int main() {
-    spawnEntity(ENEMY, 5, 1);
-//    spawnEntity(ENEMY, 10, 1);
     player = {PLAYER, 10, 10, Color::GREEN};
 
     enableVirtualTerminalProcessing();
