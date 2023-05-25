@@ -9,10 +9,8 @@
 #define CSI ESC "["
 
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr TARGET_FPS = 60;
-std::chrono::duration<double, std::milli> FRAME_DURATION(1000 / TARGET_FPS);
-int constexpr FALL_RATE = TARGET_FPS / 2;
-int constexpr BULLET_MOVE_RATE = TARGET_FPS / 20;
+float constexpr FALL_SPEED = 1.0f;
+float constexpr BULLET_SPEED = 4.0f;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
@@ -21,11 +19,14 @@ int constexpr SCREEN_RIGHT = 120;
 int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
 int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
-unsigned long frameCount = 0;
 
 std::vector<Entity> entities;
 
 Entity player;
+
+void setCursorPosition(int x, int y) {
+    printf(CSI "%i;%iH", y, x);
+}
 
 template<typename... Args>
 void setStatusMessage(const char *message, Args... args) {
@@ -59,7 +60,7 @@ bool enableVirtualTerminalProcessing() {
 void drawEntity(const Entity &entity) {
     printf(CSI "38;2;%i;%i;%im", entity.getColor().r, entity.getColor().g, entity.getColor().b);
 //    printf(CSI "38;2;%i;%i;%im", 255, 255, 255);
-    printf(CSI "%i;%iH", entity.getY(), entity.getX());
+    setCursorPosition(entity.getX(), entity.getY());
     printf("%c", entity.getChar());
 }
 
@@ -93,16 +94,18 @@ void clearPosition(int x, int y) {
     printf(CSI "1X");
 }
 
-void moveEntityDownwardIfEnemy(Entity &entity) {
+void moveEntityDownwardIfEnemy(Entity &entity, float seconds) {
     if (entity.getType() == ENEMY) {
-        clearPosition(entity.getX(), entity.getY());
-        entity.setY(entity.getY() + 1);
+        float newY = entity.getY() + (FALL_SPEED * seconds);
+        if ((int)newY != (int)entity.getY())
+            clearPosition((int)entity.getX(), (int)entity.getY());
+        entity.setY(newY);
     }
 }
 
-void moveEnemiesDownward() {
+void moveEnemiesDownward(float seconds) {
     for (auto &entity: entities) {
-        moveEntityDownwardIfEnemy(entity);
+        moveEntityDownwardIfEnemy(entity, seconds);
     }
 }
 
@@ -191,32 +194,30 @@ void handleInput() {
     }
 }
 
+void update(float seconds) {
+    moveEnemiesDownward(seconds);
+//    moveBulletsUp(seconds);
+}
+
 void enterGameLoop() {
+    auto previousTime = std::chrono::high_resolution_clock::now();
     while (true) {
-        auto previousTime = std::chrono::high_resolution_clock::now();
-        handleInput();
-        if (frameCount % FALL_RATE == 0)
-            moveEnemiesDownward();
-        if (frameCount % BULLET_MOVE_RATE == 0)
-            moveBulletsUp();
-        drawEntities();
-        frameCount++;
         auto currentTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> elapsedTime = currentTime - previousTime;
+        std::chrono::duration<float> deltaTime = currentTime - previousTime;
 
-        if (elapsedTime < FRAME_DURATION) {
-            auto sleepDuration = FRAME_DURATION - elapsedTime;
-            std::this_thread::sleep_for(sleepDuration);
-        }
+        handleInput();
+        update(deltaTime.count());
+        drawEntities();
 
-        previousTime = std::chrono::steady_clock::now();
+        previousTime = currentTime;
+        setStatusMessage("e0: %f, entities: %i, delta: %f, FPS: %f", entities[0].getY(), entities.size(), deltaTime.count(), 1/deltaTime.count());
     }
 }
 
 int main() {
-    player = {PLAYER, 10 ,10, Color::GREEN};
-    spawnEntity(ENEMY, 50, 20);
-    spawnEntity(ENEMY, 10, 5);
+    spawnEntity(ENEMY, 5, 1);
+//    spawnEntity(ENEMY, 10, 1);
+    player = {PLAYER, 10, 10, Color::GREEN};
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor

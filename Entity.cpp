@@ -11,9 +11,9 @@ Entity::Entity() : character{QUESTION_MARK_CHAR}, color{Color::MAGENTA}, type{PL
 
 Entity::Entity(EntityType type) : Entity(type, 0, 0, getColorOfEntity(type)) {}
 
-Entity::Entity(EntityType type, int x, int y) : Entity(type, x, y, getColorOfEntity(type)) {}
+Entity::Entity(EntityType type, float x, float y) : Entity(type, x, y, getColorOfEntity(type)) {}
 
-Entity::Entity(EntityType type, int x, int y, Color color) : type{type}, x{x}, y{y}, color{color} {
+Entity::Entity(EntityType type, float x, float y, Color color) : type{type}, x{x}, y{y}, color{color} {
     id = lastId++;
     character = getCharacterByEntityType(type);
 }
@@ -22,19 +22,19 @@ int Entity::getId() const {
     return id;
 }
 
-int Entity::getX() const {
+float Entity::getX() const {
     return x;
 }
 
-void Entity::setX(int x) {
+void Entity::setX(float x) {
     this->x = x;
 }
 
-int Entity::getY() const {
+float Entity::getY() const {
     return y;
 }
 
-void Entity::setY(int y) {
+void Entity::setY(float y) {
     this->y =y;
 }
 

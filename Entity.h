@@ -19,8 +19,8 @@ using enum EntityType;
 class Entity {
     static int lastId;
     int id = 0;
-    int x = 0;
-    int y = 0;
+    float x = 0;
+    float y = 0;
     char character;
     Color color;
     EntityType type;
@@ -28,19 +28,19 @@ class Entity {
 public:
     Entity(EntityType type);
 
-    Entity(EntityType type, int x, int y);
+    Entity(EntityType type, float x, float y);
 
-    Entity(EntityType type, int x, int y, Color color);
+    Entity(EntityType type, float x, float y, Color color);
 
     int getId() const;
 
-    int getX() const;
+    float getX() const;
 
-    void setX(int x);
+    void setX(float x);
 
-    int getY() const;
+    float getY() const;
 
-    void setY(int y);
+    void setY(float y);
 
     char getChar() const;
 
