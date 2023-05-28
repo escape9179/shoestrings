@@ -31,9 +31,16 @@ void setCursorPosition(int x, int y) {
 
 template<typename... Args>
 void setStatusMessage(const char *message, Args... args) {
+    static int lastMessageLen = 0;
     printf(CSI "0m");
     printf(CSI "%i;%iH", STATUS_MESSAGE_ROW, SCREEN_LEFT);
-    printf(message, args...);
+    char buffer[SCREEN_RIGHT];
+    int messageLen = sprintf( buffer, message, args...);
+    if (lastMessageLen != messageLen) {
+        printf(CSI "1M");
+        lastMessageLen = messageLen;
+    }
+    printf("%s", buffer);
 }
 
 void spawnEntity(EntityType type, int x, int y) {
@@ -223,7 +230,7 @@ void enterGameLoop() {
         drawEntities();
 
         previousTime = currentTime;
-        setStatusMessage("e: %i\tdt: %f\tfps: %f", entities.size(), deltaTime.count(), 1/deltaTime.count());
+        setStatusMessage("entities: %i\tdelta: %f\tups: %f", entities.size(), deltaTime.count(), 1/deltaTime.count());
     }
 }
 
