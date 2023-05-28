@@ -18,46 +18,6 @@ Entity::Entity(EntityType type, float x, float y, Color color) : type{type}, x{x
     character = getCharacterByEntityType(type);
 }
 
-int Entity::getId() const {
-    return id;
-}
-
-float Entity::getX() const {
-    return x;
-}
-
-void Entity::setX(float x) {
-    this->x = x;
-}
-
-float Entity::getY() const {
-    return y;
-}
-
-void Entity::setY(float y) {
-    this->y =y;
-}
-
-char Entity::getChar() const {
-    return character;
-}
-
-Color Entity::getColor() const{
-    return color;
-}
-
-EntityType Entity::getType() const {
-    return type;
-}
-
-void Entity::update(float deltaTime) {
-
-}
-
-bool Entity::operator==(const Entity &other) const {
-    return id == other.id;
-}
-
 char Entity::getCharacterByEntityType(EntityType type) const {
     if (type == PLAYER) return PLAYER_CHAR;
     else if (type == ENEMY) return ENEMY_CHAR;

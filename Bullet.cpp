@@ -8,5 +8,5 @@
 const float Bullet::SPEED = 10.0f;
 
 void Bullet::update(float deltaTime) {
-    setY(getY() - (SPEED * deltaTime));
+    y = y - (SPEED * deltaTime);
 }

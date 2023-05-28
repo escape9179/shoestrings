@@ -6,6 +6,7 @@
 #include "Color.h"
 #include "Entity.h"
 #include "Bullet.h"
+#include "Player.h"
 
 #define ESC "\x1b"
 #define CSI ESC "["
@@ -23,7 +24,7 @@ int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
 
 std::vector<Entity *> entities;
 
-Entity player;
+Entity *player;
 
 void setCursorPosition(int x, int y) {
     printf(CSI "%i;%iH", y, x);
@@ -49,7 +50,7 @@ void spawnEntity(EntityType type, int x, int y) {
             entities.push_back(new Bullet(x, y));
             break;
         default:
-            entities.push_back(new Entity(type, x, y));
+            entities.push_back(new Player(x, y));
     }
 }
 
@@ -97,7 +98,7 @@ void drawEntityByType(const Entity &entity) {
 }
 
 void drawEntities() {
-    drawEntity(player);
+    drawEntity(*player);
     for (const auto entity: entities) {
         drawEntityByType(*entity);
     }
@@ -149,12 +150,12 @@ void moveEntity(Entity &entity, int x, int y) {
 }
 
 void movePlayer(int x, int y) {
-    moveEntity(player, x, y);
+    moveEntity(*player, x, y);
 }
 
 void shootBullet() {
-    int x = player.getX();
-    int y = player.getY() - 1;
+    int x = player->getX();
+    int y = player->getY() - 1;
     spawnEntity(BULLET, x, y);
 }
 
@@ -167,13 +168,13 @@ void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
             shootBullet();
             break;
         case VK_U:
-            movePlayer(player.getX() + 1, player.getY());
+            movePlayer(player->getX() + 1, player->getY());
             break;
         case VK_E:
-            movePlayer(player.getX(), player.getY() + 1);
+            movePlayer(player->getX(), player->getY() + 1);
             break;
         case VK_O:
-            movePlayer(player.getX() - 1, player.getY());
+            movePlayer(player->getX() - 1, player->getY());
             break;
         case VK_SHIFT:
             exit(0);
@@ -205,7 +206,6 @@ void handleInput() {
     }
 }
 
-static int updates = 0;
 void update(float deltaTime) {
     moveEnemiesDownward(deltaTime);
     std::for_each(entities.begin(), entities.end(), [deltaTime] (Entity *entity) {
@@ -215,8 +215,9 @@ void update(float deltaTime) {
         if ((int)entity->getY() != (int)y || (int)entity->getX() != (int)x)
             clearPosition(x, y);
     });
-    //    std::for_each(bullets.begin(), bullets.end(), [deltaTime] (Bullet &bullet) { Bullet::update(deltaTime); });
-    updates++;
+    for (Entity *entity: entities) {
+        int x = entity->getX();
+    }
 }
 
 void enterGameLoop() {
@@ -235,7 +236,7 @@ void enterGameLoop() {
 }
 
 int main() {
-    player = {PLAYER, 10, 10, Color::GREEN};
+    player = new Player(10, 10);
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor

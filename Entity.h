@@ -18,6 +18,7 @@ using enum EntityType;
 
 class Entity {
     static int lastId;
+protected:
     int id = 0;
     float x = 0;
     float y = 0;
@@ -32,25 +33,43 @@ public:
 
     Entity(EntityType type, float x, float y, Color color);
 
-    int getId() const;
+    int getId() const {
+        return id;
+    }
 
-    float getX() const;
+    float getX() const {
+        return x;
+    }
 
-    void setX(float x);
+    void setX(float x) {
+        this->x = x;
+    }
 
-    float getY() const;
+    float getY() const {
+        return y;
+    }
 
-    void setY(float y);
+    void setY(float y) {
+        this->y = y;
+    }
 
-    char getChar() const;
+    char getChar() const {
+        return character;
+    }
 
-    Color getColor() const;
+    Color getColor() const {
+        return color;
+    }
 
-    EntityType getType() const;
+    EntityType getType() const {
+        return type;
+    }
 
-    virtual void update(float deltaTime);
+    virtual void update(float deltaTime) = 0;
 
-    bool operator==(const Entity &other) const;
+    bool operator==(const Entity &other) const {
+        return id == other.id;
+    }
 
     Entity();
 

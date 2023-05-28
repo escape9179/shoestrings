@@ -3,3 +3,9 @@
 //
 
 #include "Enemy.h"
+
+const float Enemy::SPEED = 5.0f;
+
+void Enemy::update(float deltaTime) {
+    y = y + (SPEED * deltaTime);
+}
