@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "Bullet.h"
 #include "Player.h"
+#include "Enemy.h"
 
 #define ESC "\x1b"
 #define CSI ESC "["
@@ -36,7 +37,7 @@ void setStatusMessage(const char *message, Args... args) {
     printf(CSI "0m");
     printf(CSI "%i;%iH", STATUS_MESSAGE_ROW, SCREEN_LEFT);
     char buffer[SCREEN_RIGHT];
-    int messageLen = sprintf( buffer, message, args...);
+    int messageLen = sprintf(buffer, message, args...);
     if (lastMessageLen != messageLen) {
         printf(CSI "1M");
         lastMessageLen = messageLen;
@@ -49,13 +50,16 @@ void spawnEntity(EntityType type, int x, int y) {
         case BULLET:
             entities.push_back(new Bullet(x, y));
             break;
+        case ENEMY:
+            entities.push_back(new Enemy(x, y));
+            break;
         default:
             entities.push_back(new Player(x, y));
     }
 }
 
-void destroyEntity(const Entity &entity) {
-    auto it = std::find(entities.begin(), entities.end(), &entity);
+void destroyEntity(Entity *entity) {
+    auto it = std::find(entities.begin(), entities.end(), entity);
     entities.erase(it);
 }
 
@@ -109,44 +113,22 @@ void clearPosition(int x, int y) {
     printf(CSI "1X");
 }
 
-void moveEntityDownwardIfEnemy(Entity &entity, float seconds) {
-    if (entity.getType() == ENEMY) {
-        float newY = entity.getY() + (FALL_SPEED * seconds);
-        if ((int)newY != (int)entity.getY())
-            clearPosition((int)entity.getX(), (int)entity.getY());
-        entity.setY(newY);
+std::vector<Entity *> getEntitiesAtPosition(int x, int y) {
+    std::vector<Entity *> entitiesAtPosition;
+    for (auto const entity: entities) {
+        if ((int) entity->getX() == x && (int) entity->getY() == y) {
+            entitiesAtPosition.push_back(entity);
+        }
     }
-}
-
-void moveEnemiesDownward(float seconds) {
-    for (auto entity: entities) {
-        moveEntityDownwardIfEnemy(*entity, seconds);
-    }
-}
-
-Entity *getEntityAtPosition(int x, int y) {
-    auto result = std::find_if(entities.begin(), entities.end(), [=] (const Entity *entity) {
-        return entity->getX() == x && entity->getY() == y;
-    });
-    return result == entities.end() ? nullptr : *result;
+    return entitiesAtPosition;
 }
 
 void moveEntity(Entity &entity, int x, int y) {
     if (SCREEN_LEFT > x || x > SCREEN_RIGHT) return;
     if (SCREEN_TOP > y || y > SCREEN_BOTTOM) return;
     clearPosition(entity.getX(), entity.getY());
-
-    /* Perform collision detection with other entities. */
-    auto entityAtPosition = getEntityAtPosition(x, y);
-    if (entityAtPosition == nullptr) {
-        entity.setX(x);
-        entity.setY(y);
-        return;
-    }
-
-    if (entity.getType() == BULLET) {
-        destroyEntity(*entityAtPosition);
-    }
+    entity.setX(x);
+    entity.setY(y);
 }
 
 void movePlayer(int x, int y) {
@@ -154,8 +136,8 @@ void movePlayer(int x, int y) {
 }
 
 void shootBullet() {
-    int x = player->getX();
-    int y = player->getY() - 1;
+    int x = (int) player->getX();
+    int y = (int) player->getY() - 1;
     spawnEntity(BULLET, x, y);
 }
 
@@ -207,17 +189,28 @@ void handleInput() {
 }
 
 void update(float deltaTime) {
-    moveEnemiesDownward(deltaTime);
-    std::for_each(entities.begin(), entities.end(), [deltaTime] (Entity *entity) {
+    std::vector<Entity *> overlappingEntities;
+    std::for_each(entities.begin(), entities.end(), [&](Entity *entity) {
         float x = entity->getX();
         float y = entity->getY();
         entity->update(deltaTime);
-        if ((int)entity->getY() != (int)y || (int)entity->getX() != (int)x)
+        if ((int) entity->getY() != (int) y || (int) entity->getX() != (int) x)
             clearPosition(x, y);
+
+        auto entitiesAtPosition = getEntitiesAtPosition((int) entity->getX(), (int) entity->getY());
+        entitiesAtPosition.erase(
+                std::remove_if(entitiesAtPosition.begin(), entitiesAtPosition.end(), [&](auto const entityAtPosition) {
+                    return entityAtPosition == entity;
+                }), entitiesAtPosition.end());
+        overlappingEntities.insert(overlappingEntities.end(), entitiesAtPosition.begin(), entitiesAtPosition.end());
     });
-    for (Entity *entity: entities) {
-        int x = entity->getX();
-    }
+
+    entities.erase(std::remove_if(entities.begin(), entities.end(), [&](const auto entity) {
+        for (auto overlappingEntity: overlappingEntities) {
+            if (overlappingEntity == entity) return true;
+            else return false;
+        }
+    }), entities.end());
 }
 
 void enterGameLoop() {
@@ -231,7 +224,7 @@ void enterGameLoop() {
         drawEntities();
 
         previousTime = currentTime;
-        setStatusMessage("entities: %i\tdelta: %f\tups: %f", entities.size(), deltaTime.count(), 1/deltaTime.count());
+        setStatusMessage("entities: %i\tdelta: %f\tups: %f", entities.size(), deltaTime.count(), 1 / deltaTime.count());
     }
 }
 
