@@ -1,81 +1,66 @@
 #include <windows.h>
 #include <cwchar>
 #include <vector>
+#include <chrono>
+#include <random>
+#include <set>
+#include "Entity.h"
+#include "Bullet.h"
+#include "Player.h"
+#include "Enemy.h"
 
 #define ESC "\x1b"
 #define CSI ESC "["
 
 int constexpr READ_BUFFER_SIZE = 32;
-int constexpr FPS = 60;
-int constexpr UPDATES_PER_SECOND = 1000 / FPS;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
-int constexpr SCREEN_BOTTOM = 30;
+int constexpr SCREEN_BOTTOM = 29;
 int constexpr SCREEN_RIGHT = 120;
 int constexpr SCREEN_TOP = 1;
 int constexpr SCREEN_LEFT = 1;
-int constexpr SCREEN_WIDTH = SCREEN_RIGHT;
-int constexpr SCREEN_HEIGHT = SCREEN_BOTTOM;
-int screenBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-bool update = false;
-unsigned long frameCount = 0;
+int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
 
-struct Color;
-struct Entity;
+std::vector<Entity *> entities;
 
-bool enableVirtualTerminalProcessing();
+Entity *player;
+int score = 0;
 
-void processKeyEvent(KEY_EVENT_RECORD keyEventRecord);
+void setCursorPosition(int x, int y) {
+    printf(CSI "%i;%iH", y, x);
+}
 
-void clearPosition(int x, int y);
-
-void movePlayer(int x, int y);
-
-void drawEntity(Entity &);
-
-void drawEntities();
-
-void moveEnemiesDownward();
-
-void handleInput();
-
-struct Color {
-    int r, g, b;
-
-    Color(int r, int g, int b) : r{r}, g{g}, b{b} {
-
+template<typename... Args>
+void setStatusMessage(const char *message, Args... args) {
+    static int lastMessageLen = 0;
+    printf(CSI "0m");
+    printf(CSI "%i;%iH", STATUS_MESSAGE_ROW, SCREEN_LEFT);
+    char buffer[SCREEN_RIGHT];
+    int messageLen = sprintf(buffer, message, args...);
+    if (lastMessageLen != messageLen) {
+        printf(CSI "1M");
+        lastMessageLen = messageLen;
     }
-} red(255, 0, 0), green(0, 255, 0);
+    printf("%s", buffer);
+}
 
-struct Entity {
-    int x = 0, y = 0;
-    char ch;
-    Color color;
-
-    Entity(char ch, Color color) : ch{ch}, color{color} {}
-
-    Entity(char ch, Color color, int x, int y) : ch{ch}, color{color}, x{x}, y{y} {}
-} player('o', green), enemy('e', red);
-
-std::vector<Entity> enemies;
-
-int main() {
-    enemies.emplace_back(enemy.ch, enemy.color, 50, 20);
-    enemies.emplace_back(enemy.ch, enemy.color, 10, 5);
-
-    enableVirtualTerminalProcessing();
-    printf(CSI "?25l"); // Hide the cursor
-    printf(CSI "?1049h");
-    while (true) {
-        handleInput();
-        if (frameCount % FPS == 0) {
-            moveEnemiesDownward();
-        }
-        drawEntities();
-        frameCount++;
-        Sleep(UPDATES_PER_SECOND);
+void spawnEntity(EntityType type, int x, int y) {
+    switch (type) {
+        case BULLET:
+            entities.push_back(new Bullet(x, y));
+            break;
+        case ENEMY:
+            entities.push_back(new Enemy(x, y));
+            break;
+        default:
+            entities.push_back(new Player(x, y));
     }
+}
+
+void destroyEntity(Entity *entity) {
+    auto it = std::find(entities.begin(), entities.end(), entity);
+    entities.erase(it);
 }
 
 bool enableVirtualTerminalProcessing() {
@@ -89,6 +74,101 @@ bool enableVirtualTerminalProcessing() {
     if (!SetConsoleMode(outputHandle, consoleMode))
         return false;
     return true;
+}
+
+void drawEntity(const Entity &entity) {
+    printf(CSI "38;2;%i;%i;%im", entity.getColor().r, entity.getColor().g, entity.getColor().b);
+//    printf(CSI "38;2;%i;%i;%im", 255, 255, 255);
+    setCursorPosition(entity.getX(), entity.getY());
+    printf("%c", entity.getChar());
+}
+
+void drawBulletEntity(const Entity &entity) {
+    printf(ESC "(0");
+    drawEntity(entity);
+    printf(ESC "(B");
+}
+
+void drawEntityByType(const Entity &entity) {
+    switch (entity.getType()) {
+        case ENEMY:
+        case PLAYER:
+            drawEntity(entity);
+            break;
+        case BULLET:
+            drawBulletEntity(entity);
+            break;
+    }
+}
+
+void drawEntities() {
+    drawEntity(*player);
+    for (const auto entity: entities) {
+        drawEntityByType(*entity);
+    }
+}
+
+void clearPosition(int x, int y) {
+    setCursorPosition(x, y);
+    printf(CSI "1X");
+}
+
+std::vector<Entity *> getEntitiesAtPosition(int x, int y) {
+    std::vector<Entity *> entitiesAtPosition;
+    for (auto const entity: entities) {
+        if ((int) entity->getX() == x && (int) entity->getY() == y) {
+            entitiesAtPosition.push_back(entity);
+        }
+    }
+    return entitiesAtPosition;
+}
+
+void moveEntity(Entity &entity, int x, int y) {
+    if (SCREEN_LEFT > x || x > SCREEN_RIGHT) return;
+    if (SCREEN_TOP > y || y > SCREEN_BOTTOM) return;
+    clearPosition(entity.getX(), entity.getY());
+    entity.setX(x);
+    entity.setY(y);
+}
+
+void movePlayer(int x, int y) {
+    moveEntity(*player, x, y);
+}
+
+void shootBullet() {
+    int x = (int) player->getX();
+    int y = (int) player->getY() - 1;
+    spawnEntity(BULLET, x, y);
+}
+
+void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
+    if (!keyEventRecord.bKeyDown)
+        return;
+    WORD keyCode = keyEventRecord.wVirtualKeyCode;
+    switch (keyCode) {
+        case VK_OEM_PERIOD:
+            shootBullet();
+            break;
+        case VK_U:
+            movePlayer(player->getX() + 1, player->getY());
+            break;
+        case VK_E:
+            movePlayer(player->getX(), player->getY() + 1);
+            break;
+        case VK_O:
+            movePlayer(player->getX() - 1, player->getY());
+            break;
+        case VK_SHIFT:
+            exit(0);
+        case VK_CONTROL: {
+            std::random_device rd;
+            std::uniform_int_distribution<int> distribution(SCREEN_LEFT, SCREEN_RIGHT);
+            spawnEntity(ENEMY, distribution(rd), 1);
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 void handleInput() {
@@ -108,77 +188,100 @@ void handleInput() {
     }
 }
 
-void moveEnemiesDownward() {
-    auto iterator = enemies.begin();
-    while (iterator != enemies.end()) {
-        clearPosition(iterator->x, iterator->y);
-        iterator++->y++;
+bool entityCollidedWithScreenBorder(Entity *entity) {
+    float x = (int) entity->getX();
+    float y = (int) entity->getY();
+    return SCREEN_LEFT > x || x > SCREEN_RIGHT || SCREEN_TOP > y || y > SCREEN_BOTTOM;
+}
+
+void setEntityPositionAtIndex(int index, int x, int y) {
+    entities[index]->setX(x);
+    entities[index]->setY(y);
+}
+
+std::vector<Entity *> *getOtherEntitiesAtPositionOf(Entity *entity) {
+    auto *otherEntities = new std::vector<Entity *>();
+    for (Entity *otherEntity: entities) {
+        if (*otherEntity == *entity) continue;
+        if (entity->getPoint() == otherEntity->getPoint()) otherEntities->push_back(otherEntity);
+    }
+    return otherEntities;
+}
+
+void update(float delta) {
+    std::set<Entity *> entitiesForRemoval;
+    for (int i = 0; i < entities.size(); i++) {
+        int x1 = entities[i]->getX();
+        int y1 = entities[i]->getY();
+        entities[i]->update(delta);
+        int x2 = entities[i]->getX();
+        int y2 = entities[i]->getY();
+
+        if (x1 != x2 || y1 != y2) {
+            setCursorPosition(x1, y1);
+            printf(CSI "1X");
+        }
+
+        /* If the entity collided with the border of a screen then set the entities position to the last position it
+         * was at before it collided with the border. */
+        if (entityCollidedWithScreenBorder(entities[i])) {
+//            setEntityPositionAtIndex(i, x1, y1);
+            entitiesForRemoval.insert(entities[i]);
+        }
+
+        auto entitiesAtSamePosition = getOtherEntitiesAtPositionOf(entities[i]);
+        for (Entity *otherEntity : *entitiesAtSamePosition) {
+            CollisionResult result = entities[i]->getResultFromCollisionWith(otherEntity);
+            switch (result) {
+                case CollisionResult::DESTROY_SELF:
+                    entitiesForRemoval.insert(entities[i]);
+                    break;
+                case CollisionResult::DESTROY_OTHER:
+                    entitiesForRemoval.insert(otherEntity);
+                    break;
+                case CollisionResult::DESTROY_BOTH:
+                    entitiesForRemoval.insert(entities[i]);
+                    entitiesForRemoval.insert(otherEntity);
+                    break;
+                case CollisionResult::DO_NOTHING:
+                    break;
+            }
+        }
+
+        delete entitiesAtSamePosition;
+    }
+
+    for (int i = 0; i < entities.size(); i++) {
+        for (auto & j : entitiesForRemoval) {
+            if (*j == *entities[i]) {
+                clearPosition(j->getX(), j->getY());
+                entities.erase(entities.begin() + i);
+            }
+        }
     }
 }
 
-void drawEntities() {
-    drawEntity(player);
-    auto iterator = enemies.begin();
-    while (iterator != enemies.end()) {
-        drawEntity(*iterator++);
+void enterGameLoop() {
+    auto previousTime = std::chrono::high_resolution_clock::now();
+    while (true) {
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> deltaTime = currentTime - previousTime;
+
+        handleInput();
+        update(deltaTime.count());
+        drawEntities();
+
+        previousTime = currentTime;
+        setStatusMessage("entities: %i\tdelta: %f\tups: %f", entities.size(), deltaTime.count(), 1 / deltaTime.count());
     }
 }
 
-void drawEntity(Entity &entity) {
-    printf(CSI "38;2;%i;%i;%im", entity.color.r, entity.color.g, entity.color.b);
-    printf(CSI "%i;%iH", entity.y, entity.x);
-    printf("%c", entity.ch);
-}
+int main() {
+    player = new Player(10, 10);
 
-void clearPosition(int x, int y) {
-    printf(CSI "%i;%iH", y, x);
-    printf(CSI "1X");
-}
+    enableVirtualTerminalProcessing();
+    printf(CSI "?25l"); // Hide the cursor
+    printf(CSI "?1049h");
 
-void movePlayer(int x, int y) {
-    if (SCREEN_LEFT > x || x > SCREEN_WIDTH)x = player.x;
-    if (SCREEN_TOP > y || y > SCREEN_HEIGHT)y = player.y;
-    clearPosition(player.x, player.y);
-    player.x = x;
-    player.y = y;
-    drawEntity(player);
-}
-
-void moveDown() {
-    movePlayer(player.x, player.y + 1);
-}
-
-void moveUp() {
-    movePlayer(player.x, player.y - 1);
-}
-
-void moveLeft() {
-    movePlayer(player.x - 1, player.y);
-}
-
-void moveRight() {
-    movePlayer(player.x + 1, player.y);
-}
-
-void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
-    if (!keyEventRecord.bKeyDown)
-        return;
-    WORD keyCode = keyEventRecord.wVirtualKeyCode;
-    switch (keyCode) {
-        case VK_OEM_PERIOD:
-            moveUp();
-            break;
-        case VK_U:
-            moveRight();
-            break;
-        case VK_E:
-            moveDown();
-            break;
-        case VK_O:
-            moveLeft();
-            break;
-        default:
-            printf("Pressed an unsupported key.\n");
-            break;
-    }
+    enterGameLoop();
 }
