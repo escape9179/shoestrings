@@ -12,6 +12,8 @@ class Bullet : public Entity {
 public:
     Bullet(float x, float y) : Entity(BULLET, x, y) {}
 
+    CollisionResult getResultFromCollisionWith(Entity *entity) const override;
+
     void update(float deltaTime) override;
 };
 

@@ -8,6 +8,7 @@
 
 #include "Color.h"
 #include "EntityType.h"
+#include "Point.h"
 
 char constexpr PLAYER_CHAR = 'o';
 char constexpr ENEMY_CHAR = 'e';
@@ -15,6 +16,10 @@ char constexpr BULLET_CHAR = 'x';
 char constexpr QUESTION_MARK_CHAR = '?';
 
 using enum EntityType;
+
+enum CollisionResult {
+    DESTROY_BOTH, DESTROY_SELF, DESTROY_OTHER, DO_NOTHING
+};
 
 class Entity {
     static int lastId;
@@ -35,6 +40,10 @@ public:
 
     int getId() const {
         return id;
+    }
+
+    Point getPoint() const {
+        return { (int) x, (int) y };
     }
 
     float getX() const {
@@ -64,6 +73,8 @@ public:
     EntityType getType() const {
         return type;
     }
+
+    virtual CollisionResult getResultFromCollisionWith(Entity *entity) const = 0;
 
     virtual void update(float deltaTime) = 0;
 

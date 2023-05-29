@@ -3,7 +3,7 @@
 #include <vector>
 #include <chrono>
 #include <random>
-#include "Color.h"
+#include <set>
 #include "Entity.h"
 #include "Bullet.h"
 #include "Player.h"
@@ -13,7 +13,6 @@
 #define CSI ESC "["
 
 int constexpr READ_BUFFER_SIZE = 32;
-float constexpr FALL_SPEED = 1.0f;
 int constexpr VK_U = 0x55;
 int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
@@ -26,6 +25,7 @@ int constexpr STATUS_MESSAGE_ROW = SCREEN_BOTTOM + 1;
 std::vector<Entity *> entities;
 
 Entity *player;
+int score = 0;
 
 void setCursorPosition(int x, int y) {
     printf(CSI "%i;%iH", y, x);
@@ -188,29 +188,77 @@ void handleInput() {
     }
 }
 
-void update(float deltaTime) {
-    std::vector<Entity *> overlappingEntities;
-    std::for_each(entities.begin(), entities.end(), [&](Entity *entity) {
-        float x = entity->getX();
-        float y = entity->getY();
-        entity->update(deltaTime);
-        if ((int) entity->getY() != (int) y || (int) entity->getX() != (int) x)
-            clearPosition(x, y);
+bool entityCollidedWithScreenBorder(Entity *entity) {
+    float x = (int) entity->getX();
+    float y = (int) entity->getY();
+    return SCREEN_LEFT > x || x > SCREEN_RIGHT || SCREEN_TOP > y || y > SCREEN_BOTTOM;
+}
 
-        auto entitiesAtPosition = getEntitiesAtPosition((int) entity->getX(), (int) entity->getY());
-        entitiesAtPosition.erase(
-                std::remove_if(entitiesAtPosition.begin(), entitiesAtPosition.end(), [&](auto const entityAtPosition) {
-                    return entityAtPosition == entity;
-                }), entitiesAtPosition.end());
-        overlappingEntities.insert(overlappingEntities.end(), entitiesAtPosition.begin(), entitiesAtPosition.end());
-    });
+void setEntityPositionAtIndex(int index, int x, int y) {
+    entities[index]->setX(x);
+    entities[index]->setY(y);
+}
 
-    entities.erase(std::remove_if(entities.begin(), entities.end(), [&](const auto entity) {
-        for (auto overlappingEntity: overlappingEntities) {
-            if (overlappingEntity == entity) return true;
-            else return false;
+std::vector<Entity *> *getOtherEntitiesAtPositionOf(Entity *entity) {
+    auto *otherEntities = new std::vector<Entity *>();
+    for (Entity *otherEntity: entities) {
+        if (*otherEntity == *entity) continue;
+        if (entity->getPoint() == otherEntity->getPoint()) otherEntities->push_back(otherEntity);
+    }
+    return otherEntities;
+}
+
+void update(float delta) {
+    std::set<Entity *> entitiesForRemoval;
+    for (int i = 0; i < entities.size(); i++) {
+        int x1 = entities[i]->getX();
+        int y1 = entities[i]->getY();
+        entities[i]->update(delta);
+        int x2 = entities[i]->getX();
+        int y2 = entities[i]->getY();
+
+        if (x1 != x2 || y1 != y2) {
+            setCursorPosition(x1, y1);
+            printf(CSI "1X");
         }
-    }), entities.end());
+
+        /* If the entity collided with the border of a screen then set the entities position to the last position it
+         * was at before it collided with the border. */
+        if (entityCollidedWithScreenBorder(entities[i])) {
+//            setEntityPositionAtIndex(i, x1, y1);
+            entitiesForRemoval.insert(entities[i]);
+        }
+
+        auto entitiesAtSamePosition = getOtherEntitiesAtPositionOf(entities[i]);
+        for (Entity *otherEntity : *entitiesAtSamePosition) {
+            CollisionResult result = entities[i]->getResultFromCollisionWith(otherEntity);
+            switch (result) {
+                case CollisionResult::DESTROY_SELF:
+                    entitiesForRemoval.insert(entities[i]);
+                    break;
+                case CollisionResult::DESTROY_OTHER:
+                    entitiesForRemoval.insert(otherEntity);
+                    break;
+                case CollisionResult::DESTROY_BOTH:
+                    entitiesForRemoval.insert(entities[i]);
+                    entitiesForRemoval.insert(otherEntity);
+                    break;
+                case CollisionResult::DO_NOTHING:
+                    break;
+            }
+        }
+
+        delete entitiesAtSamePosition;
+    }
+
+    for (int i = 0; i < entities.size(); i++) {
+        for (auto & j : entitiesForRemoval) {
+            if (*j == *entities[i]) {
+                clearPosition(j->getX(), j->getY());
+                entities.erase(entities.begin() + i);
+            }
+        }
+    }
 }
 
 void enterGameLoop() {

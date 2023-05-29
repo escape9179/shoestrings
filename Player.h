@@ -14,7 +14,11 @@ public:
 
     }
 
-private:
+    CollisionResult getResultFromCollisionWith(Entity *entity) const override {
+        if (entity->getType() == EntityType::ENEMY) return CollisionResult::DESTROY_BOTH;
+        return CollisionResult::DO_NOTHING;
+    }
+
     void update(float deltaTime) override {
 
     }
