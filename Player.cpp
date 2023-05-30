@@ -22,7 +22,7 @@ void Player::draw() const {
     Console::enterAsciiMode();
     printf(CSI "47m");
     printf(" ");
-    Console::setTextFormatting(0);
+    Console::resetTextFormatting();
 }
 
 void Player::erase() const {

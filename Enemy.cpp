@@ -16,15 +16,17 @@ void Enemy::update(float deltaTime) {
 void Enemy::draw() const {
     Console::setCursorPosition(x, y);
     Console::setForegroundColor(color.r, color.g, color.b);
-    printf("e");
+    Console::enterLineDrawingMode();
+    printf("j");
+    Console::enterAsciiMode();
+}
+
+void Enemy::erase() const {
+    Console::erasePosition(x, y);
 }
 
 CollisionResult Enemy::getResultFromCollisionWith(Entity *entity) const {
     if (entity->getType() == EntityType::PLAYER) return CollisionResult::DESTROY_BOTH;
     if (entity->getType() == EntityType::BULLET) return CollisionResult::DESTROY_BOTH;
     return CollisionResult::DO_NOTHING;
-}
-
-void Enemy::erase() const {
-    Console::erasePosition(x, y);
 }

@@ -13,7 +13,6 @@
 
 int constexpr READ_BUFFER_SIZE = 32;
 int constexpr VK_U = 0x55;
-int constexpr VK_E = 0x45;
 int constexpr VK_O = 0x4F;
 int constexpr SCREEN_BOTTOM = 29;
 int constexpr SCREEN_RIGHT = 120;
@@ -25,6 +24,7 @@ std::vector<Entity *> entities;
 
 Entity *player;
 int score = 0;
+bool gameOver = false;
 
 template<typename... Args>
 void setStatusMessage(const char *message, Args... args) {
@@ -68,7 +68,7 @@ bool enableVirtualTerminalProcessing() {
 
 void drawEntities() {
     player->draw();
-    std::for_each(entities.begin(), entities.end(), [] (const auto entity) { entity->draw(); });
+    std::for_each(entities.begin(), entities.end(), [](const auto entity) { entity->draw(); });
 }
 
 void moveEntity(Entity &entity, int x, int y) {
@@ -100,14 +100,12 @@ void processKeyEvent(KEY_EVENT_RECORD keyEventRecord) {
         case VK_U:
             movePlayer(player->getX() + 1, player->getY());
             break;
-        case VK_E:
-            movePlayer(player->getX(), player->getY() + 1);
-            break;
         case VK_O:
             movePlayer(player->getX() - 1, player->getY());
             break;
         case VK_SHIFT:
-            exit(0);
+            // TODO Adjust entity speed?
+            break;
         case VK_CONTROL: {
             std::random_device rd;
             std::uniform_int_distribution<int> distribution(SCREEN_LEFT, SCREEN_RIGHT);
@@ -161,8 +159,7 @@ void update(float delta) {
         int y2 = entities[i]->getY();
 
         if (x1 != x2 || y1 != y2) {
-            Console::setCursorPosition(x1, y1);
-            printf(CSI "1X");
+            Console::erasePosition(x1, y1);
         }
 
         if (entityCollidedWithScreenBorder(entities[i])) {
@@ -170,7 +167,7 @@ void update(float delta) {
         }
 
         auto entitiesAtSamePosition = getOtherEntitiesAtPositionOf(entities[i]);
-        for (Entity *otherEntity : *entitiesAtSamePosition) {
+        for (Entity *otherEntity: *entitiesAtSamePosition) {
             CollisionResult result = entities[i]->getResultFromCollisionWith(otherEntity);
             switch (result) {
                 case CollisionResult::DESTROY_SELF:
@@ -182,6 +179,10 @@ void update(float delta) {
                 case CollisionResult::DESTROY_BOTH:
                     entitiesForRemoval.insert(entities[i]);
                     entitiesForRemoval.insert(otherEntity);
+                    if (entitiesForRemoval.contains(player))
+                        gameOver = true;
+                    if (entities[i]->getType() == EntityType::ENEMY && otherEntity->getType() == EntityType::BULLET)
+                        score++;
                     break;
                 case CollisionResult::DO_NOTHING:
                     break;
@@ -191,8 +192,11 @@ void update(float delta) {
         delete entitiesAtSamePosition;
     }
 
+    if (entities.empty() || entitiesForRemoval.empty())
+        return;
+
     for (int i = 0; i < entities.size(); i++) {
-        for (auto & j : entitiesForRemoval) {
+        for (auto &j: entitiesForRemoval) {
             if (*j == *entities[i]) {
                 Console::erasePosition(j->getX(), j->getY());
                 entities.erase(entities.begin() + i);
@@ -204,21 +208,23 @@ void update(float delta) {
 void enterGameLoop() {
     auto previousTime = std::chrono::high_resolution_clock::now();
     while (true) {
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> deltaTime = currentTime - previousTime;
+        if (!gameOver) {
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<float> deltaTime = currentTime - previousTime;
 
-        handleInput();
-        update(deltaTime.count());
-        drawEntities();
+            handleInput();
+            update(deltaTime.count());
+            drawEntities();
 
-        previousTime = currentTime;
-        setStatusMessage("entities: %i\tdelta: %f\tups: %f", entities.size(), deltaTime.count(), 1 / deltaTime.count());
+            previousTime = currentTime;
+            setStatusMessage("UPS: %5.2f\tScore: %i", 1 / deltaTime.count(), score);
+        } else setStatusMessage("GAME OVER");
     }
 }
 
 int main() {
-    setlocale(LC_ALL, "");
-    player = new Player(10, 10);
+    player = new Player(SCREEN_RIGHT / 2, SCREEN_BOTTOM);
+    entities.push_back(player);
 
     enableVirtualTerminalProcessing();
     printf(CSI "?25l"); // Hide the cursor

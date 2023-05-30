@@ -25,6 +25,7 @@ void Bullet::draw() const {
     Console::enterLineDrawingMode();
     printf("x");
     Console::enterAsciiMode();
+    Console::resetTextFormatting();
 }
 
 void Bullet::erase() const {

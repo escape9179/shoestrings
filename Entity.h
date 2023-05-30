@@ -27,6 +27,7 @@ protected:
     int id = 0;
     float x = 0;
     float y = 0;
+    float speed = 0;
     Color color;
     EntityType type;
 
@@ -67,6 +68,10 @@ public:
 
     EntityType getType() const {
         return type;
+    }
+
+    void setSpeed(float value) {
+        speed = value;
     }
 
     virtual CollisionResult getResultFromCollisionWith(Entity *entity) const = 0;

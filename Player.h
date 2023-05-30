@@ -12,7 +12,7 @@ class Player : public Entity {
 public:
     Player(float x, float y) : Entity(PLAYER, x, y) {}
 
-    CollisionResult getResultFromCollisionWith(Entity *entity) const;
+    CollisionResult getResultFromCollisionWith(Entity *entity) const override;
 
     void update(float deltaTime) override {
 

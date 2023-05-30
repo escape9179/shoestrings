@@ -18,7 +18,11 @@ namespace Console {
 
     void setForegroundColor(int r, int g, int b);
 
+    void setBackgroundColor(int r, int g, int b);
+
     void setTextFormatting(int value);
+
+    void resetTextFormatting();
 }
 
 #endif //CPPTEST_CONSOLE_H
