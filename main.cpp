@@ -53,11 +53,6 @@ void spawnEntity(EntityType type, int x, int y) {
     }
 }
 
-void destroyEntity(Entity *entity) {
-    auto it = std::find(entities.begin(), entities.end(), entity);
-    entities.erase(it);
-}
-
 bool enableVirtualTerminalProcessing() {
     HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     if (outputHandle == INVALID_HANDLE_VALUE)
@@ -71,29 +66,9 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
-void drawBulletEntity(const Entity &entity) {
-    printf(ESC "(0");
-//    drawEntity(entity);
-    entity.draw();
-    printf(ESC "(B");
-}
-
 void drawEntities() {
     player->draw();
-    for (const auto entity: entities) {
-//        drawEntityByType(*entity);
-        entity->draw();
-    }
-}
-
-std::vector<Entity *> getEntitiesAtPosition(int x, int y) {
-    std::vector<Entity *> entitiesAtPosition;
-    for (auto const entity: entities) {
-        if ((int) entity->getX() == x && (int) entity->getY() == y) {
-            entitiesAtPosition.push_back(entity);
-        }
-    }
-    return entitiesAtPosition;
+    std::for_each(entities.begin(), entities.end(), [] (const auto entity) { entity->draw(); });
 }
 
 void moveEntity(Entity &entity, int x, int y) {
@@ -167,11 +142,6 @@ bool entityCollidedWithScreenBorder(Entity *entity) {
     return SCREEN_LEFT > x || x > SCREEN_RIGHT || SCREEN_TOP > y || y > SCREEN_BOTTOM;
 }
 
-void setEntityPositionAtIndex(int index, int x, int y) {
-    entities[index]->setX(x);
-    entities[index]->setY(y);
-}
-
 std::vector<Entity *> *getOtherEntitiesAtPositionOf(Entity *entity) {
     auto *otherEntities = new std::vector<Entity *>();
     for (Entity *otherEntity: entities) {
@@ -195,10 +165,7 @@ void update(float delta) {
             printf(CSI "1X");
         }
 
-        /* If the entity collided with the border of a screen then set the entities position to the last position it
-         * was at before it collided with the border. */
         if (entityCollidedWithScreenBorder(entities[i])) {
-//            setEntityPositionAtIndex(i, x1, y1);
             entitiesForRemoval.insert(entities[i]);
         }
 
