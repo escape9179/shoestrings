@@ -7,7 +7,7 @@
 
 int Entity::lastId = 0;
 
-Entity::Entity() : character{QUESTION_MARK_CHAR}, color{Color::MAGENTA}, type{PLAYER} {}
+Entity::Entity() : color{Color::MAGENTA}, type{PLAYER} {}
 
 Entity::Entity(EntityType type) : Entity(type, 0, 0, getColorOfEntity(type)) {}
 
@@ -15,14 +15,6 @@ Entity::Entity(EntityType type, float x, float y) : Entity(type, x, y, getColorO
 
 Entity::Entity(EntityType type, float x, float y, Color color) : type{type}, x{x}, y{y}, color{color} {
     id = lastId++;
-    character = getCharacterByEntityType(type);
-}
-
-char Entity::getCharacterByEntityType(EntityType type) const {
-    if (type == PLAYER) return PLAYER_CHAR;
-    else if (type == ENEMY) return ENEMY_CHAR;
-    else if (type == BULLET) return BULLET_CHAR;
-    else return QUESTION_MARK_CHAR;
 }
 
 Color Entity::getColorOfEntity(EntityType type) const {

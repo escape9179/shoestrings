@@ -10,18 +10,15 @@
 
 class Player : public Entity {
 public:
-    Player(float x, float y) : Entity(PLAYER, x, y) {
+    Player(float x, float y) : Entity(PLAYER, x, y) {}
 
-    }
-
-    CollisionResult getResultFromCollisionWith(Entity *entity) const override {
-        if (entity->getType() == EntityType::ENEMY) return CollisionResult::DESTROY_BOTH;
-        return CollisionResult::DO_NOTHING;
-    }
+    CollisionResult getResultFromCollisionWith(Entity *entity) const;
 
     void update(float deltaTime) override {
 
     }
+
+    void draw() const override;
 };
 
 

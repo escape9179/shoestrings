@@ -15,6 +15,8 @@ public:
     CollisionResult getResultFromCollisionWith(Entity *entity) const override;
 
     void update(float deltaTime) override;
+
+    void draw() const override;
 };
 
 

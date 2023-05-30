@@ -27,7 +27,6 @@ protected:
     int id = 0;
     float x = 0;
     float y = 0;
-    char character;
     Color color;
     EntityType type;
 
@@ -62,10 +61,6 @@ public:
         this->y = y;
     }
 
-    char getChar() const {
-        return character;
-    }
-
     Color getColor() const {
         return color;
     }
@@ -77,6 +72,8 @@ public:
     virtual CollisionResult getResultFromCollisionWith(Entity *entity) const = 0;
 
     virtual void update(float deltaTime) = 0;
+
+    virtual void draw() const = 0;
 
     bool operator==(const Entity &other) const {
         return id == other.id;

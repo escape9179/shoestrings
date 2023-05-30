@@ -3,4 +3,4 @@ project(CPPTest)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(CPPTest main.cpp Entity.cpp Entity.h Color.cpp Color.h EntityType.h Enemy.cpp Enemy.h Bullet.cpp Bullet.h Player.cpp Player.h Point.h)
+add_executable(CPPTest main.cpp Entity.cpp Entity.h Color.cpp Color.h EntityType.h Enemy.cpp Enemy.h Bullet.cpp Bullet.h Player.cpp Player.h Point.h macros.h Console.h Console.cpp)

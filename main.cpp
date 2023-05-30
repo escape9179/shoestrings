@@ -8,9 +8,8 @@
 #include "Bullet.h"
 #include "Player.h"
 #include "Enemy.h"
-
-#define ESC "\x1b"
-#define CSI ESC "["
+#include "macros.h"
+#include "Console.h"
 
 int constexpr READ_BUFFER_SIZE = 32;
 int constexpr VK_U = 0x55;
@@ -26,10 +25,6 @@ std::vector<Entity *> entities;
 
 Entity *player;
 int score = 0;
-
-void setCursorPosition(int x, int y) {
-    printf(CSI "%i;%iH", y, x);
-}
 
 template<typename... Args>
 void setStatusMessage(const char *message, Args... args) {
@@ -76,41 +71,19 @@ bool enableVirtualTerminalProcessing() {
     return true;
 }
 
-void drawEntity(const Entity &entity) {
-    printf(CSI "38;2;%i;%i;%im", entity.getColor().r, entity.getColor().g, entity.getColor().b);
-//    printf(CSI "38;2;%i;%i;%im", 255, 255, 255);
-    setCursorPosition(entity.getX(), entity.getY());
-    printf("%c", entity.getChar());
-}
-
 void drawBulletEntity(const Entity &entity) {
     printf(ESC "(0");
-    drawEntity(entity);
+//    drawEntity(entity);
+    entity.draw();
     printf(ESC "(B");
 }
 
-void drawEntityByType(const Entity &entity) {
-    switch (entity.getType()) {
-        case ENEMY:
-        case PLAYER:
-            drawEntity(entity);
-            break;
-        case BULLET:
-            drawBulletEntity(entity);
-            break;
-    }
-}
-
 void drawEntities() {
-    drawEntity(*player);
+    player->draw();
     for (const auto entity: entities) {
-        drawEntityByType(*entity);
+//        drawEntityByType(*entity);
+        entity->draw();
     }
-}
-
-void clearPosition(int x, int y) {
-    setCursorPosition(x, y);
-    printf(CSI "1X");
 }
 
 std::vector<Entity *> getEntitiesAtPosition(int x, int y) {
@@ -126,7 +99,7 @@ std::vector<Entity *> getEntitiesAtPosition(int x, int y) {
 void moveEntity(Entity &entity, int x, int y) {
     if (SCREEN_LEFT > x || x > SCREEN_RIGHT) return;
     if (SCREEN_TOP > y || y > SCREEN_BOTTOM) return;
-    clearPosition(entity.getX(), entity.getY());
+    Console::erasePosition(entity.getX(), entity.getY());
     entity.setX(x);
     entity.setY(y);
 }
@@ -218,7 +191,7 @@ void update(float delta) {
         int y2 = entities[i]->getY();
 
         if (x1 != x2 || y1 != y2) {
-            setCursorPosition(x1, y1);
+            Console::setCursorPosition(x1, y1);
             printf(CSI "1X");
         }
 
@@ -254,7 +227,7 @@ void update(float delta) {
     for (int i = 0; i < entities.size(); i++) {
         for (auto & j : entitiesForRemoval) {
             if (*j == *entities[i]) {
-                clearPosition(j->getX(), j->getY());
+                Console::erasePosition(j->getX(), j->getY());
                 entities.erase(entities.begin() + i);
             }
         }
