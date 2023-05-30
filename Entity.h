@@ -10,11 +10,6 @@
 #include "EntityType.h"
 #include "Point.h"
 
-char constexpr PLAYER_CHAR = 'o';
-char constexpr ENEMY_CHAR = 'e';
-char constexpr BULLET_CHAR = 'x';
-char constexpr QUESTION_MARK_CHAR = '?';
-
 using enum EntityType;
 
 enum CollisionResult {
@@ -93,8 +88,6 @@ public:
     Entity();
 
 private:
-    char getCharacterByEntityType(EntityType type) const;
-
     Color getColorOfEntity(EntityType type) const;
 };
 
