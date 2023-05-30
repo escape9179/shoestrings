@@ -74,7 +74,7 @@ void drawEntities() {
 void moveEntity(Entity &entity, int x, int y) {
     if (SCREEN_LEFT > x || x > SCREEN_RIGHT) return;
     if (SCREEN_TOP > y || y > SCREEN_BOTTOM) return;
-    Console::erasePosition(entity.getX(), entity.getY());
+    entity.erase();
     entity.setX(x);
     entity.setY(y);
 }
@@ -217,6 +217,7 @@ void enterGameLoop() {
 }
 
 int main() {
+    setlocale(LC_ALL, "");
     player = new Player(10, 10);
 
     enableVirtualTerminalProcessing();

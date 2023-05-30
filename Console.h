@@ -5,10 +5,20 @@
 #ifndef CPPTEST_CONSOLE_H
 #define CPPTEST_CONSOLE_H
 
+#include "macros.h"
+
 namespace Console {
     void setCursorPosition(int x, int y);
 
     void erasePosition(int x, int y);
+
+    void enterLineDrawingMode();
+
+    void enterAsciiMode();
+
+    void setForegroundColor(int r, int g, int b);
+
+    void setTextFormatting(int value);
 }
 
 #endif //CPPTEST_CONSOLE_H

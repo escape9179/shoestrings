@@ -18,7 +18,7 @@ Entity::Entity(EntityType type, float x, float y, Color color) : type{type}, x{x
 }
 
 Color Entity::getColorOfEntity(EntityType type) const {
-    if (type == PLAYER) return Color::GREEN;
+    if (type == PLAYER) return Color::WHITE;
     else if (type == ENEMY) return Color::RED;
     else if (type == BULLET) return Color::BLUE;
     else return Color::WHITE;

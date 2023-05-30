@@ -21,6 +21,12 @@ CollisionResult Bullet::getResultFromCollisionWith(Entity *entity) const {
 
 void Bullet::draw() const {
     Console::setCursorPosition(x, y);
-    printf(CSI "38;2;%i;%i;%im", color.r, color.g, color.b);
-    printf("\u2588");
+    Console::setForegroundColor(color.r, color.g, color.b);
+    Console::enterLineDrawingMode();
+    printf("x");
+    Console::enterAsciiMode();
+}
+
+void Bullet::erase() const {
+    Console::erasePosition(x, y);
 }

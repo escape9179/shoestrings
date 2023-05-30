@@ -17,6 +17,8 @@ public:
     void update(float deltaTime) override;
 
     void draw() const override;
+
+    void erase() const override;
 };
 
 

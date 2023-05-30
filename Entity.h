@@ -75,6 +75,8 @@ public:
 
     virtual void draw() const = 0;
 
+    virtual void erase() const = 0;
+
     bool operator==(const Entity &other) const {
         return id == other.id;
     }

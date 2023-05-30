@@ -19,6 +19,8 @@ public:
     }
 
     void draw() const override;
+
+    void erase() const override;
 };
 
 

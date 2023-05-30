@@ -2,6 +2,7 @@
 // Created by tr3lo on 5/28/2023.
 //
 
+#include <iostream>
 #include <cstdio>
 #include "Player.h"
 #include "Console.h"
@@ -13,7 +14,18 @@ CollisionResult Player::getResultFromCollisionWith(Entity *entity) const {
 }
 
 void Player::draw() const {
+    Console::setCursorPosition(x, y - 1);
+    Console::setForegroundColor(color.r, color.g, color.b);
+    Console::enterLineDrawingMode();
+    printf("x");
     Console::setCursorPosition(x, y);
-    printf(CSI "38;2;%i;%i;%im", color.r, color.g, color.b);
-    printf("\u2588");
+    Console::enterAsciiMode();
+    printf(CSI "47m");
+    printf(" ");
+    Console::setTextFormatting(0);
+}
+
+void Player::erase() const {
+    Console::erasePosition(x, y - 1);
+    Console::erasePosition(x, y);
 }
