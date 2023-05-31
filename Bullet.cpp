@@ -8,10 +8,8 @@
 #include "Console.h"
 #include "macros.h"
 
-const float Bullet::SPEED = 30.0f;
-
 void Bullet::update(float deltaTime) {
-    y = y - (SPEED * deltaTime);
+    y = y - (speed * deltaTime);
 }
 
 CollisionResult Bullet::getResultFromCollisionWith(Entity *entity) const {
@@ -30,4 +28,8 @@ void Bullet::draw() const {
 
 void Bullet::erase() const {
     Console::erasePosition(x, y);
+}
+
+Point Bullet::getNextPosition(float delta) const {
+    return {(int) x, (int) (y - (speed * delta))};
 }

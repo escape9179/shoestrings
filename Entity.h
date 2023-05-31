@@ -31,7 +31,7 @@ public:
 
     Entity(EntityType type, float x, float y);
 
-    Entity(EntityType type, float x, float y, Color color);
+    Entity(EntityType type, float x, float y, Color color, float speed);
 
     int getId() const {
         return id;
@@ -69,6 +69,12 @@ public:
         speed = value;
     }
 
+    float getSpeed() const {
+        return speed;
+    }
+
+    virtual Point getNextPosition(float delta) const;
+
     virtual CollisionResult getResultFromCollisionWith(Entity *entity) const = 0;
 
     virtual void update(float deltaTime) = 0;
@@ -89,6 +95,8 @@ public:
 
 private:
     Color getColorOfEntity(EntityType type) const;
+
+    float getSpeedOfEntity(EntityType type) const;
 };
 
 

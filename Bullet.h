@@ -8,7 +8,6 @@
 #include "Entity.h"
 
 class Bullet : public Entity {
-    static const float SPEED;
 public:
     Bullet(float x, float y) : Entity(BULLET, x, y) {}
 
@@ -19,6 +18,8 @@ public:
     void draw() const override;
 
     void erase() const override;
+
+    Point getNextPosition(float delta) const override;
 };
 
 

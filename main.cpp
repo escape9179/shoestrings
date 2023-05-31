@@ -154,13 +154,15 @@ void update(float delta) {
     for (int i = 0; i < entities.size(); i++) {
         int x1 = entities[i]->getX();
         int y1 = entities[i]->getY();
-        entities[i]->update(delta);
-        int x2 = entities[i]->getX();
-        int y2 = entities[i]->getY();
+        Point nextPosition = entities[i]->getNextPosition(delta);
+        int x2 = nextPosition.x;
+        int y2 = nextPosition.y;
 
         if (x1 != x2 || y1 != y2) {
-            Console::erasePosition(x1, y1);
+            entities[i]->erase();
         }
+
+        entities[i]->update(delta);
 
         if (entityCollidedWithScreenBorder(entities[i])) {
             entitiesForRemoval.insert(entities[i]);
@@ -198,7 +200,7 @@ void update(float delta) {
     for (int i = 0; i < entities.size(); i++) {
         for (auto &j: entitiesForRemoval) {
             if (*j == *entities[i]) {
-                Console::erasePosition(j->getX(), j->getY());
+                j->erase();
                 entities.erase(entities.begin() + i);
             }
         }
